@@ -1,0 +1,904 @@
+# LaundryHub API contract
+
+Status: **implemented and consumed**. Reviewed against the application on
+2026-09-09. Supabase Auth is the deployed identity provider; the API serves the
+public marketplace plus authenticated customer and laundry-owner resources
+described here.
+
+Public partner, catalogue, slot and membership-plan reads need no token.
+Profiles, addresses, carts, order placement/history and current membership use
+the verified Supabase caller. Laundry-owner queues, configuration and catalogue
+maintenance use the same verified caller and owner-scoped RLS. No production
+resource falls back to bundled data; local order/user arrays exist only behind
+the browser-test fixture.
+
+Base URL: `/api/v1`
+
+---
+
+## 1. Conventions
+
+### Identifiers
+
+Opaque strings, never sequential integers in URLs. Partner ids are already
+strings (`"1001"`); treat them as opaque so they can become ULIDs later without
+a client change.
+
+### Money
+
+**Integer minor units (pesewas) plus a currency code.** Never floats.
+
+```json
+{ "amount": 4900, "currency": "GHS" }
+```
+
+`4900` is GH₵49.00. The UI formats through a single `Money` component. Rationale: `0.1 + 0.2` problems in tax and totals are
+otherwise guaranteed once discounts arrive.
+
+### Dates and times
+
+Instants are ISO 8601 timestamps in UTC. **No pre-formatted display strings.**
+The client receives `"2026-08-20T05:00:00Z"` and formats for the user's locale.
+Calendar-only fields use `YYYY-MM-DD`; partner closures and capacity overrides
+interpret those dates in the Africa/Accra operating timezone.
+
+### Errors
+
+One shape for every failure:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Add a GPS location to this saved address before placing the order.",
+    "fields": { "latitude": "Must be a valid coordinate." },
+    "requestId": "01J8..."
+  }
+}
+```
+
+`code` is a stable machine string the UI switches on. `message` is safe to show.
+`fields` is present only for `VALIDATION_FAILED`. HTTP status still carries
+meaning (400/401/403/404/409/422/429/500).
+
+### Pagination
+
+Cursor-based for anything unbounded:
+
+```json
+{ "data": [ ... ], "nextCursor": "eyJpZCI6..." }
+```
+
+`?limit=20&cursor=...`. Absent `nextCursor` means the end.
+
+### Auth
+
+Authenticated calls use `Authorization: Bearer <supabase access token>`. The
+token is issued and refreshed by Supabase Auth; the API verifies it against
+Supabase's JWKS. See section 2 and decision 5.
+
+### Idempotency
+
+`POST /orders` requires an `Idempotency-Key` header (client-generated UUID).
+Replaying the same key returns the original order rather than creating a second
+one. Without this, a double-tap on Place Order creates two orders.
+
+A first successful commit may emit a best-effort anonymous analytics event. It
+is outside the HTTP contract, contains no customer/order/address/GPS coordinates
+identifier and cannot change the status or body. Idempotent replays do not emit
+another server event.
+
+---
+
+## 2. Auth - delegated to Supabase Auth
+
+We do **not** build our own auth. The production client uses Supabase Auth
+directly; our API only _verifies_ the incoming access token.
+
+### Why
+
+- Short-lived access JWT + auto-rotated refresh token, handled by the client
+  library. Revocation works at the refresh-token layer: sign-out (or "sign out
+  everywhere") invalidates it, so the session cannot be renewed; the access JWT
+  lives only until its short expiry.
+- Email/password **and Google OAuth** use the provider's supported
+  sign-in flows rather than application-owned credentials.
+- Session storage follows the Supabase client model. If the frontend later moves
+  to server-rendered delivery, `@supabase/ssr` can use httpOnly cookies.
+
+### Client-side (no endpoints of ours)
+
+- Register: `supabase.auth.signUp({ email, password })`
+- Login: `supabase.auth.signInWithPassword({ email, password })` and surface the
+  provider's invalid-credentials response without exposing account existence.
+- Google: `supabase.auth.signInWithOAuth({ provider: 'google' })`
+- Password reset: `supabase.auth.resetPasswordForEmail(email)` - always
+  succeeds to the user regardless of account existence (no enumeration).
+- Email confirmation and OAuth return through `/auth/callback`; password
+  recovery returns through `/update-password` and calls `updateUser` only for a
+  recovery session.
+- Redirects use PKCE, so the browser receives a short-lived authorization code
+  rather than access and refresh tokens in the callback URL.
+- Session restore, automatic access-token refresh and sign-out are library
+  calls. Normal sign-out is scoped to the current browser session. The client
+  forwards the current access token to the API without storing a second
+  application-owned session.
+
+### Server-side (our API)
+
+Every authenticated request carries `Authorization: Bearer <supabase access
+token>`. The API verifies its signature, issuer, audience, authenticated role
+and UUID subject against Supabase's JWKS, then reads the caller as `auth.uid()`.
+No `/auth/*` routes of our own.
+
+### Profile
+
+Supabase owns the identity row (`auth.users`). We keep an app-level profile
+keyed by the Supabase user id for fields Supabase does not model:
+
+```json
+{
+  "id": "018f7fd2-00d8-7c71-9b24-53f617ef0b66",
+  "fullName": "Demo Customer",
+  "email": "customer@example.com",
+  "phone": "+91 90000 00000",
+  "memberSince": "2024-01-14T00:00:00Z",
+  "preferences": { "sms": true, "email": false }
+}
+```
+
+- `GET /me` → `200` this profile (created on first login if absent).
+- `PATCH /me` → `200` updates app-level name, phone and preferences. Email
+  changes continue through Supabase Auth so confirmation policy stays with the
+  identity provider.
+
+Note: **addresses are no longer embedded**. They are their own resource, so
+adding one does not require re-fetching the profile.
+
+---
+
+## 3. Partners
+
+### `GET /partners?latitude=5.6500&longitude=-0.1800&services=wash-fold&tags=free-pickup&sort=distance&limit=20`
+
+```json
+{
+  "data": [
+    {
+      "id": "1001",
+      "name": "SparkleWash Express",
+      "rating": 4.9,
+      "reviewCount": 234,
+      "address": {
+        "line1": "12, MG Road",
+        "line2": "Sector 5",
+        "city": "Accra"
+      },
+      "distanceMeters": 800,
+      "tags": ["free-pickup", "eco-friendly"],
+      "services": ["wash-fold", "wash-iron", "dry-cleaning"],
+      "turnaroundHours": 24,
+      "startingPrice": { "amount": 2000, "currency": "GHS", "unit": "piece" },
+      "isOpen": true,
+      "image": {
+        "url": "https://cdn.../sparklewash.jpg",
+        "alt": "Front-loading washing machines"
+      }
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+Changes from the original mock, all deliberate and now reflected in the client:
+
+| Previous fixture                   | Contract                | Why                                                                                 |
+| ---------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
+| `distanceKm: 0.8`                  | `distanceMeters: 800`   | Integer; and it is a property of _this search_, not of the partner                  |
+| `tags: ["Free Pickup"]`            | `tags: ["free-pickup"]` | Slugs are stable; display names are the client's business and are already in config |
+| postal-code discovery            | GPS coordinates         | Nearby results use the customer's current browser location                           |
+| `startingPrice: 49`                | money object with unit  | Currency and units become explicit                                                  |
+
+`services` lists the catalogue category slugs the partner actually offers, so the
+listing can be filtered by service without fetching every catalogue. `services=`
+takes one or more slugs and matches partners offering **all** of them, the same
+conjunctive rule as `tags=`. The homepage service cards are the first caller: each
+card links to `/laundries?service=wash-fold`. Exact browser coordinates stay in
+router state and are only sent to this API request, not placed in a shareable URL.
+
+`isOpen` is resolved server-side from the owner's master switch, today's
+holiday closure and optional weekly schedule. See decision 2.
+
+When both coordinates are supplied, results are limited to each laundry's
+configured service radius (10 km by default, configurable from 1 to 25 km), and
+`distanceMeters` is calculated from that origin. The browser only
+requests location after the customer taps the location button; if permission is
+denied, the customer can still browse the marketplace without distance
+filtering. Location is sent only to the API and is not included in analytics.
+
+`sort=distance` requires a latitude/longitude pair. Without an origin there is
+no meaningful distance to sort, so the API returns `422` instead of presenting
+a stable-looking but arbitrary order.
+
+### `GET /partners/{id}`
+
+→ `200` the same object, plus `openingHours` and `about`.
+→ `404` `{ "error": { "code": "PARTNER_NOT_FOUND" } }`; the UI renders a
+dedicated not-found state.
+
+### `GET /partners/{id}/catalog`
+
+```json
+{
+  "categories": [
+    {
+      "id": "cat_1001_wash-fold",
+      "service": "wash-fold",
+      "name": "Wash & Fold",
+      "items": [
+        {
+          "id": "wf-shirt",
+          "name": "Shirt / T-shirt",
+          "description": "Machine wash with premium detergent, neatly folded",
+          "price": { "amount": 2000, "currency": "GHS" },
+          "unit": "piece",
+          "iconKey": "shirt"
+        },
+        {
+          "id": "wf-trousers",
+          "name": "Trousers / Jeans",
+          "price": { "amount": 3000, "currency": "GHS" },
+          "unit": "piece",
+          "iconKey": "box"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Pricing is per item.** Every catalog item carries a fixed `price` and a `unit`,
+so the total is fully known at checkout - there is no weigh-after-pickup estimate
+flow. The service is encoded in the item: a "Wash & Fold - Shirt" and a
+"Dry Clean - Shirt" are different items at different prices, which is why coarse
+garment buckets (Shirt/T-shirt, Trousers/Jeans, Bedsheet, Towel...) live under
+per-service categories rather than one shared menu.
+
+`unit` enum: `piece | bag | kg`. **Launch ships `piece` only.** `bag` (a real
+fixed-capacity branded bag, priced flat) and `kg` (needs weighing) stay in the
+enum so they can return later with no schema change, once operations support
+them honestly. See decision 5.
+
+`iconKey` keeps presentation out of storage. The client maps the stable key onto
+its icon registry, avoiding platform-dependent emoji rendering.
+
+**Catalogue is per partner**. The same garment can therefore have different
+prices and descriptions at different laundries.
+
+A category carries both `service` and `name`: `service` is the platform's slug,
+which is what `services=` filters on, and `name` is the partner's own wording.
+Royal Dry Cleaners calls its category "Express Dry Clean" and still answers
+`services=dry-cleaning`. The four slugs are `wash-fold`, `wash-iron`,
+`dry-cleaning` and `premium-care`, matching `ServiceId` in the client.
+
+`startingPrice` on a partner is **derived**, not stored: it is the cheapest
+active item in that partner's catalogue. A partner therefore cannot advertise a
+starting price its catalogue does not actually offer.
+
+---
+
+## 4. Addresses
+
+- `GET /addresses` → `{ "data": [SavedAddress] }`
+- `POST /addresses` → `201` `SavedAddress`
+- `PATCH /addresses/{id}` → `200`
+- `DELETE /addresses/{id}` → `204`
+
+```json
+{
+  "id": "adr_01J8",
+  "label": "Home",
+  "recipientName": "Ayush Agrawal",
+  "phone": "+233 20 123 4567",
+  "building": "42",
+  "street": "Sector 5, HSR Layout, Accra",
+  "landmark": "",
+  "latitude": 5.6502,
+  "longitude": -0.187,
+  "isDefault": true
+}
+```
+
+`fullName` renamed to `recipientName` - it is who receives the delivery, not
+necessarily the account holder.
+
+---
+
+## 5. Slots
+
+### `GET /partners/{id}/slots?from=2026-07-19&days=7`
+
+```json
+{
+  "days": [
+    {
+      "date": "2026-07-19",
+      "slots": [
+        {
+          "id": "slt_0800",
+          "startsAt": "2026-07-19T02:30:00Z",
+          "endsAt": "2026-07-19T04:30:00Z",
+          "available": true
+        },
+        {
+          "id": "slt_1000",
+          "startsAt": "2026-07-19T04:30:00Z",
+          "endsAt": "2026-07-19T06:30:00Z",
+          "available": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+Slots come from the server because capacity, partner hours and holidays live
+there. The client uses the opaque slot id as identity and renders
+`available: false` as unselectable.
+
+---
+
+## 6. Cart
+
+- `GET /cart` → `Cart`
+- `PUT /cart/items/{itemId}` `{ "quantity": 3 }` → `Cart` (quantity `0` removes)
+- `POST /cart/membership` / `DELETE /cart/membership` → `Cart`
+- `DELETE /cart` → `204`
+
+```json
+{
+  "id": "crt_01J8",
+  "partner": { "id": "1001", "name": "SparkleWash Express" },
+  "items": [
+    {
+      "itemId": "wf-shirt",
+      "name": "Shirt / T-shirt",
+      "description": "Machine washed with premium detergent, neatly folded",
+      "categoryName": "Wash & Fold",
+      "iconKey": "shirt",
+      "quantity": 3,
+      "unit": "piece",
+      "unitPrice": { "amount": 2000, "currency": "GHS" },
+      "lineTotal": { "amount": 6000, "currency": "GHS" }
+    }
+  ],
+  "membership": {
+    "plan": "plus",
+    "price": { "amount": 9900, "currency": "GHS" },
+    "period": "month"
+  },
+  "totals": {
+    "subtotal": { "amount": 6000, "currency": "GHS" },
+    "delivery": { "amount": 0, "currency": "GHS" },
+    "membership": { "amount": 9900, "currency": "GHS" },
+    "discount": { "amount": 600, "currency": "GHS" },
+    "tax": { "amount": 2754, "currency": "GHS" },
+    "total": { "amount": 18054, "currency": "GHS" }
+  }
+}
+```
+
+**Totals are computed server-side and returned.** The authenticated client uses
+these values directly; guest carts show an estimate until they are merged into
+the server cart at sign-in.
+
+A cart holds one partner's items. Adding from another partner returns `409
+CART_PARTNER_CONFLICT` and the UI asks before replacing.
+
+---
+
+## 7. Orders
+
+### `POST /orders`
+
+Header: `Idempotency-Key: <uuid>`
+
+```json
+{
+  "cartId": "crt_01J8",
+  "addressId": "adr_01J8",
+  "pickupSlotId": "slt_0800",
+  "deliverySlotId": "slt_1800",
+  "paymentMethod": "cash_on_pickup"
+}
+```
+
+→ `201` `Order`
+→ `200` the original `Order` when the same idempotency key is replayed
+→ `409` `ADDRESS_LOCATION_REQUIRED` when the saved address has no GPS coordinates
+→ `409` `ADDRESS_NOT_SERVICEABLE` when the customer is outside the laundry's
+configured service radius. The cart and slot capacity are preserved.
+→ `409` `SLOT_UNAVAILABLE` if a slot filled between selection and submit
+→ `409` `CART_CHANGED` if a cart line became inactive or no longer belongs
+to the selected laundry. The cart is preserved so the UI can refresh it and ask
+the customer to review the change.
+
+### `GET /orders?limit=20&cursor=...` → `{ "data": [OrderSummary], "nextCursor": ... }`
+
+### `GET /orders/{id}` → `Order`
+
+```json
+{
+  "id": "ord_01J8XR3K2W",
+  "reference": "LL-2026-001",
+  "status": "processing",
+  "canCancel": false,
+  "canReschedule": false,
+  "placedAt": "2024-03-20T10:30:00Z",
+  "partner": { "id": "1001", "name": "SparkleWash Express" },
+  "lines": [
+    {
+      "itemId": "wf-shirt",
+      "name": "Shirt / T-shirt",
+      "quantity": 5,
+      "unit": "piece",
+      "amount": { "amount": 10000, "currency": "GHS" }
+    }
+  ],
+  "totals": {
+    "subtotal": { "amount": 10000, "currency": "GHS" },
+    "delivery": { "amount": 0, "currency": "GHS" },
+    "membership": { "amount": 0, "currency": "GHS" },
+    "discount": { "amount": 0, "currency": "GHS" },
+    "tax": { "amount": 1800, "currency": "GHS" },
+    "total": { "amount": 11800, "currency": "GHS" }
+  },
+  "deliveryAddress": {
+    "label": "Home",
+    "recipientName": "Ayush Agrawal",
+    "phone": "+233 20 123 4567",
+    "building": "42",
+    "street": "Sector 5, HSR Layout, Accra",
+    "landmark": "",
+    "latitude": 5.6502,
+    "longitude": -0.187
+  },
+  "pickup": { "date": "2024-03-20", "startsAt": "...", "endsAt": "..." },
+  "delivery": { "date": "2024-03-22", "startsAt": "...", "endsAt": "..." },
+  "events": [
+    { "type": "placed", "occurredAt": "2024-03-20T10:30:00Z" },
+    { "type": "confirmed", "occurredAt": "2024-03-20T10:45:00Z" },
+    { "type": "picked_up", "occurredAt": "2024-03-20T14:00:00Z" }
+  ],
+  "reschedules": [
+    {
+      "occurredAt": "2024-03-19T12:00:00Z",
+      "previous": {
+        "pickup": { "startsAt": "...", "endsAt": "..." },
+        "delivery": { "startsAt": "...", "endsAt": "..." }
+      },
+      "updated": {
+        "pickup": { "startsAt": "...", "endsAt": "..." },
+        "delivery": { "startsAt": "...", "endsAt": "..." }
+      }
+    }
+  ]
+}
+```
+
+The API sends _events that happened_; the client renders labels, formats times, and derives
+done/current/pending from the last event plus the known sequence. That way
+copy changes and translations do not need a backend deploy.
+
+`status` values: `processing | out_for_delivery | delivered | cancelled`
+(lowercase snake, not display strings).
+
+`canCancel` is evaluated by the server using the current tracking event,
+scheduled pickup, payment method and membership charge. The client shows the
+self-service action only when this value is true and still treats the mutation
+response as authoritative if eligibility changes after the read.
+
+`canReschedule` is evaluated from the current status, latest fulfilment event
+and scheduled pickup. Plus-activation orders remain eligible because moving a
+schedule does not reverse a charge or membership. `reschedules` is the
+immutable before/after history; it is not mixed into the fulfilment timeline.
+
+### `POST /orders/{id}/cancellation`
+
+Authenticated customer operation with no request body. It is available only
+for the caller's own service-only, cash-on-pickup order while the latest event
+is `placed` or `confirmed` and the scheduled pickup has not started.
+
+→ `200`
+
+```json
+{
+  "orderId": "ord_01J8XR3K2W",
+  "status": "cancelled",
+  "event": { "type": "cancelled", "occurredAt": "2026-09-07T06:30:00Z" }
+}
+```
+
+The database locks the order, appends the terminal event, updates status and
+releases both slot reservations in one transaction. Concurrent repeat requests
+produce one cancellation and one `409 CANCELLATION_NOT_ALLOWED`; capacity is
+released exactly once. Another customer's order returns the same `404` as a
+missing id.
+
+Orders that have reached pickup, whose pickup time has elapsed, or that
+activated Plus return `409 CANCELLATION_NOT_ALLOWED`. Plus-activation orders
+remain a support case because the current membership table has no safe reversal
+or refund lifecycle. Partner-initiated cancellation and post-pickup exceptions
+remain separate policies.
+
+### `POST /orders/{id}/rescheduling`
+
+Authenticated customer operation for the caller's own order while its latest
+fulfilment event is `placed` or `confirmed` and scheduled pickup has not begun.
+
+```json
+{
+  "pickupSlotId": "slt_new_pickup",
+  "deliverySlotId": "slt_new_delivery"
+}
+```
+
+→ `200`
+
+```json
+{
+  "orderId": "ord_01J8XR3K2W",
+  "rescheduledAt": "2026-09-09T06:30:00Z"
+}
+```
+
+The new pair must belong to the order's laundry, remain in the future, retain
+pickup-before-delivery ordering and have open capacity. The database locks the
+order and all old/new slots in stable id order, moves reservations, updates the
+order and writes an immutable before/after audit row in one transaction. A
+stale slot returns `409 SLOT_UNAVAILABLE`; an elapsed or progressed order
+returns `409 RESCHEDULING_NOT_ALLOWED`; another customer's order returns `404`.
+Concurrent equal requests produce one change and one controlled `409` without
+double-releasing capacity.
+
+### `GET /partner/orders?partnerId=1001&status=processing&limit=20&cursor=...`
+
+Authenticated laundry-owner queue. `partnerId` and `status` are optional; when
+omitted, the queue covers every laundry owned by the caller and every status.
+An account that owns no laundry receives `403`. Filtering by a laundry owned by
+someone else returns `404`.
+
+→ `{ "data": [PartnerOrderSummary], "nextCursor": ... }`
+
+```json
+{
+  "id": "ord_01J8XR3K2W",
+  "reference": "LL-2026-001",
+  "status": "processing",
+  "placedAt": "2024-03-20T10:30:00Z",
+  "partner": { "id": "1001", "name": "SparkleWash Express" },
+  "recipient": { "name": "Customer One", "latitude": 5.6502, "longitude": -0.187 },
+  "itemCount": 5,
+  "total": { "amount": 11800, "currency": "GHS" },
+  "pickup": { "startsAt": "...", "endsAt": "..." },
+  "delivery": { "startsAt": "...", "endsAt": "..." },
+  "latestEvent": { "type": "confirmed", "occurredAt": "..." }
+}
+```
+
+The queue deliberately omits the phone and street address. Those operational
+details are returned only from `GET /partner/orders/{id}` after the same
+ownership check. Detail uses the existing `Order` shape, including snapshotted
+lines, totals, delivery address, current slots, reschedule audit and tracking events. A customer or a
+different laundry owner receives `404`.
+
+### `GET /partner/orders/summary?partnerId=1001`
+
+Authenticated laundry-owner operational summary. `partnerId` is optional; with
+no filter it covers every laundry owned by the caller. Counts use the
+Africa/Accra local operating date.
+
+```json
+{
+  "activeOrders": 12,
+  "awaitingConfirmation": 3,
+  "pickupsToday": 5,
+  "deliveriesToday": 4,
+  "completedToday": 7,
+  "generatedAt": "2026-09-09T06:30:00Z"
+}
+```
+
+The same owner/no-owner and concealed-laundry rules as the queue apply. The
+summary is operational state, not an analytics or financial report.
+
+### `POST /partner/orders/{id}/events`
+
+Authenticated laundry-owner operation. The body names the next event:
+
+```json
+{ "type": "confirmed" }
+```
+
+→ `201`
+
+```json
+{
+  "orderId": "ord_01J8XR3K2W",
+  "status": "processing",
+  "event": { "type": "confirmed", "occurredAt": "2024-03-20T10:45:00Z" }
+}
+```
+
+The only accepted sequence is `placed → confirmed → picked_up → in_progress →
+out_for_delivery → delivered`. `orders.status` remains `processing` through
+`in_progress`, then follows `out_for_delivery` and `delivered`. A skipped,
+repeated or post-terminal event returns `409 INVALID_ORDER_TRANSITION`. An order
+outside the caller's laundry returns the same `404` as a missing order.
+
+The database locks the order and appends the event plus status change in one
+transaction. Direct `orders` updates and `order_events` inserts remain denied to
+authenticated sessions. Customer cancellation goes through the narrower
+`cancel_order` operation; partner-initiated cancellation remains a separate
+policy decision.
+
+### `GET /partner/laundries`
+
+Authenticated laundry-owner configuration list. It returns every laundry whose
+`owner_id` is the caller. An authenticated account that owns no laundry receives
+`403`; anonymous requests receive `401`.
+
+→ `{ "data": [PartnerConfiguration] }`
+
+### `GET /partner/laundries/{id}`
+
+Returns one owned laundry configuration. A customer, another owner or a missing
+id receives the same `404`, so the endpoint does not disclose ownership.
+
+```json
+{
+  "id": "1001",
+  "name": "SparkleWash Express",
+  "about": "Fast, careful garment care.",
+  "address": {
+    "line1": "12 Lake Road",
+    "line2": "HSR Layout",
+    "city": "Accra"
+  },
+  "latitude": 5.6502,
+  "longitude": -0.187,
+  "serviceRadiusKm": 10,
+  "holidayClosures": [{ "date": "2026-10-02", "reason": "Public holiday" }],
+  "capacityOverrides": [
+    { "date": "2026-10-03", "capacity": 12, "note": "Festival demand" }
+  ],
+  "turnaroundHours": 24,
+  "acceptingOrders": true,
+  "useOpeningHours": true,
+  "currentlyOpen": true,
+  "openingHours": [
+    { "weekday": 0, "opensAt": null, "closesAt": null },
+    { "weekday": 1, "opensAt": "08:00", "closesAt": "20:00" }
+  ]
+}
+```
+
+`acceptingOrders` is the owner's master switch. `currentlyOpen` is read-only and
+applies that switch, today's exceptional closure and the current weekly schedule
+when `useOpeningHours` is enabled. `holidayClosures` contains only today and
+future dates in the laundry's Africa/Accra operating timezone.
+`capacityOverrides` contains current/future exceptional dates and the order
+limit applied to every pickup window on each date.
+
+### `PUT /partner/laundries/{id}`
+
+Replaces the editable configuration in one transaction. The body is the shape
+above without `id` and `currentlyOpen`. `latitude` and `longitude` must be a
+valid GPS coordinate pair. `serviceRadiusKm` is an integer from 1 to 25; new
+laundries default to 10 km. `openingHours` must contain each weekday
+`0` through `6` exactly once. A closed day uses two null times; an open day uses
+24-hour `HH:MM` values with closing after opening. Overnight windows are not
+accepted. The laundry GPS point and radius determine marketplace visibility and
+order serviceability. No postal-code fields are part of the API.
+`holidayClosures` accepts up to 60 unique real dates from today onward. Reasons
+are optional, trimmed and limited to 120 characters. A save replaces the
+laundry's complete current/future closure set while preserving historical
+closure records.
+`capacityOverrides` accepts up to 60 unique real dates from today onward. Each
+capacity is an integer from 1 to 100 and its optional trimmed note is limited to
+120 characters. A save replaces the complete current/future override set while
+preserving historical rows.
+
+Only profile, address, service areas, holiday closures, capacity overrides,
+turnaround, manual state and schedule fields are owner writable. The owner
+cannot change `owner_id`, ratings or platform-managed media.
+
+When hours change, future unbooked slots are regenerated and booked slots are
+preserved but blocked from further capacity. Saving unchanged hours does not
+disturb existing slots.
+
+Adding a closure removes its future unbooked slots. Slots with an existing
+reservation are retained for referential integrity and blocked from additional
+bookings, so the laundry can resolve those orders from its queue. Removing a
+closure regenerates safe windows within the rolling 14-day horizon. Slot
+generation and daily rollover continue to skip every active closure.
+
+A capacity override changes every existing and newly generated pickup window
+on its local date. Removing it restores the default of eight. A reduction below
+the highest already-booked window is rejected atomically with
+`409 CAPACITY_BELOW_BOOKED`; no reservation is dropped or overbooked. Holiday
+and schedule-blocked windows remain blocked independently of capacity.
+
+### `GET /partner/laundries/{id}/catalog`
+
+Returns the complete catalogue for an owned laundry. It uses the public
+catalogue shape from `GET /partners/{id}/catalog`, with an additional
+`isActive` boolean on every item. Hidden items are included here so an owner can
+restore them; public catalogue reads include active items only. A customer,
+another owner or a missing laundry receives the same `404`.
+
+### `POST /partner/laundries/{id}/catalog/categories`
+
+Creates one service category for an owned laundry:
+
+```json
+{ "service": "premium-care", "name": "Couture Care" }
+```
+
+→ `201` the new owner catalogue category with an empty `items` array. `service`
+must be one of `wash-fold`, `wash-iron`, `dry-cleaning` or `premium-care`, and a
+laundry may have each canonical service only once. A duplicate returns
+`409 SERVICE_ALREADY_EXISTS`. PostgreSQL verifies ownership and assigns the next
+display position; authenticated clients cannot insert a category directly.
+
+### `PATCH /partner/laundries/{id}/catalog/categories/{categoryId}`
+
+Updates an existing category's customer-facing name:
+
+```json
+{ "name": "Everyday Laundry" }
+```
+
+→ `200` the updated owner catalogue category, including active and hidden
+items. The canonical `service` slug is platform-owned and cannot be changed by
+this endpoint.
+
+### `POST /partner/laundries/{id}/catalog/categories/{categoryId}/items`
+
+Creates an item under an owned category. The request uses the same editable
+shape as the item patch endpoint:
+
+```json
+{
+  "name": "Silk saree",
+  "description": "Specialist cleaning and finishing.",
+  "price": { "amount": 39900, "currency": "GHS" },
+  "isActive": true
+}
+```
+
+→ `201` the new item. The server fixes `currency` to GHS, `unit` to `piece`,
+uses a safe generic `iconKey` and assigns the next display position. The item
+can be created hidden and published later. Another owner or a category outside
+the laundry receives the same `404`.
+
+### `PATCH /partner/laundries/{id}/catalog/items/{itemId}`
+
+Updates the editable fields of one existing item:
+
+```json
+{
+  "name": "Shirt / T-shirt",
+  "description": "Washed, pressed and folded.",
+  "price": { "amount": 2500, "currency": "GHS" },
+  "isActive": true
+}
+```
+
+→ `200` the updated item. Prices are integer pesewas from `0` through
+`100000000`, and this launch surface accepts GHS only. Name, optional
+description, price and customer availability are the only editable fields;
+category assignment, currency, unit, icon and display order remain
+platform-managed.
+
+There is deliberately no delete operation. Setting `isActive` to `false` hides
+an item from customer catalogue reads without removing the row, so saved carts
+retain their references and placed orders retain their snapshots. A stale cart
+containing a hidden item is rejected by order placement as `CART_CHANGED`.
+Category reassignment, canonical-slug changes and deletion remain
+platform-managed operations.
+
+---
+
+## 8. Membership
+
+- `GET /membership/plans` → plan, price, benefits
+- `GET /me/membership` → current status, renewal date
+- Purchase happens with the first service order carrying Plus in the cart, so
+  no separate purchase endpoint or unfulfillable membership-only order exists.
+
+The 10% discount is applied server-side in cart totals and snapshotted on the
+order. The published benefits are `ten-percent-off`, `one-month-access` and
+`itemized-checkout`. Free-pickup and priority-capacity rules can be added only
+after their operating policy is settled and the placement transaction enforces
+them.
+
+---
+
+## 9. Decisions
+
+Reviewed 2026-09-09.
+
+### Settled
+
+1. **Cart ownership → guest cart client-side, merged on login.** Cart stays in
+   `localStorage` and works signed-out. On login, merge
+   into the account: **guest cart wins on partner conflict** (replace the server
+   cart, warn via `CART_PARTNER_CONFLICT`); if the partner matches, union the
+   line items and take the higher quantity per item.
+2. **`isOpen` → server-resolved.** Partner settings let owners toggle open/closed,
+   opt into auto open/close by opening hours and close exceptional local dates.
+   Consequence: the partner list must not be cached hard on the client (short TTL
+   or revalidate on detail) so a store that just closed stops taking orders
+   promptly.
+3. **Money → integer minor units (pesewas).**
+4. **Order id → two fields.** Opaque non-guessable `id` (ULID, used in every URL
+   and API call) plus a human-friendly display-only `reference` (`LL-2026-001`).
+   Never look up by `reference`. Closes order enumeration and removes the need
+   for a global atomic counter on the hot path.
+
+5. **Token strategy → Supabase Auth.** The production client uses Supabase Auth directly
+   (email/password + OAuth); our API only verifies the access JWT and reads
+   `auth.uid()`. Revocation via refresh-token invalidation on sign-out;
+   short-lived access token; httpOnly-cookie storage available via
+   `@supabase/ssr`. Section 2 is rewritten around this - our own `/auth/*` routes
+   are gone. Google sign-in uses `signInWithOAuth`.
+6. **Pricing model → per item.** Every catalog item has a fixed price and a
+   `unit`, so the total is known at checkout and the estimate/reweigh/"final
+   price pending"/pay-later flow is deleted. `unit` enum is `piece | bag | kg`;
+   **launch ships `piece` only**, with `bag` and `kg` reserved for later with no
+   schema change. Follow-up: the footer copy "you only pay once your laundry has
+   been weighed" must change.
+
+7. **Listing filters by service.** `Partner` carries a `services` array of
+   catalogue category slugs, and `GET /partners` accepts `services=`. The
+   alternative, deriving it by joining every partner's catalogue at query time,
+   makes the cheapest and most common query on the site pay for the rarest need.
+   The array is derived from `catalog_categories.service` server-side, so it
+   cannot drift from what the partner actually sells. This is implemented in
+   the `partner_details` view and consumed by the listing.
+
+### Deferred (revisit later)
+
+8. **Reviews.** `rating`/`reviewCount` stay read-only for now; write endpoints
+   designed later.
+
+- **Order chat** with the partner (placeholder today).
+- **Map view** of partners (placeholder today).
+
+---
+
+## 10. Client rollout
+
+Implemented:
+
+- List and detail screens render loading, empty and retryable error states.
+- `services/*Services.ts` is the only network boundary for partners, catalogues
+  and slots.
+- The listing reads its service filter from the query string, so a homepage card
+  and a filter chip are the same state.
+- Timeline labels and state are derived by the client from domain events.
+- `CartContext` keeps a versioned guest cart, merges it at sign-in and then
+  caches server-computed totals.
+- `useCheckoutForm` submits `POST /orders` with a stable idempotency key and
+  surfaces `409 SLOT_UNAVAILABLE` without losing the cart.
+- Profile, address, order and membership screens use authenticated endpoints;
+  local arrays are browser-test fixtures only.
+- Eligible order tracking exposes a confirmed customer cancellation and refreshes
+  from the server after the atomic status/event/capacity change.
+- Eligible tracking also loads current laundry slots and reschedules both
+  appointments through one audited capacity transaction.
+- The protected laundry-owner portal consumes its order queue, detail and
+  operational summary and lifecycle routes, and maintains profile, service areas, weekly hours, holiday
+  closures and date-specific capacity, and creates and maintains catalogue
+  services/items through owner-scoped endpoints.

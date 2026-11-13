@@ -1,0 +1,105 @@
+import {
+    ArrowLeft,
+    ArrowRight,
+    BedDouble,
+    CalendarCheck,
+    Camera,
+    Check,
+    ChevronRight,
+    CircleAlert,
+    CircleCheck,
+    Clock,
+    Crown,
+    Eye,
+    EyeOff,
+    Footprints,
+    House,
+    LogOut,
+    Mail,
+    MapPin,
+    MessageSquare,
+    Minus,
+    Moon,
+    Navigation,
+    Package,
+    Pencil,
+    Percent,
+    Phone,
+    Plus,
+    Receipt,
+    RefreshCw,
+    ShieldCheck,
+    Shirt,
+    ShoppingCart,
+    SlidersHorizontal,
+    Sparkles,
+    Star,
+    Sun,
+    Trash2,
+    Truck,
+    User,
+    X,
+} from 'lucide-react';
+import GithubIcon from './GithubIcon';
+import GoogleIcon from './GoogleIcon';
+
+/**
+ * Name-to-component registry so configuration and data files can reference an
+ * icon by name without importing React or the icon library.
+ */
+export const ICONS = {
+    'arrow-left': ArrowLeft,
+    'arrow-right': ArrowRight,
+    bed: BedDouble,
+    box: Package,
+    calendar: CalendarCheck,
+    camera: Camera,
+    cart: ShoppingCart,
+    chat: MessageSquare,
+    check: Check,
+    close: X,
+    'check-circle': CircleCheck,
+    'chevron-right': ChevronRight,
+    alert: CircleAlert,
+    clock: Clock,
+    crown: Crown,
+    eye: Eye,
+    'eye-off': EyeOff,
+    github: GithubIcon,
+    filter: SlidersHorizontal,
+    google: GoogleIcon,
+    home: House,
+    'log-out': LogOut,
+    mail: Mail,
+    minus: Minus,
+    moon: Moon,
+    navigation: Navigation,
+    pencil: Pencil,
+    percent: Percent,
+    phone: Phone,
+    pin: MapPin,
+    plus: Plus,
+    receipt: Receipt,
+    refresh: RefreshCw,
+    shield: ShieldCheck,
+    shirt: Shirt,
+    shoe: Footprints,
+    sparkles: Sparkles,
+    star: Star,
+    sun: Sun,
+    trash: Trash2,
+    truck: Truck,
+    user: User,
+} as const;
+
+export type IconName = keyof typeof ICONS;
+
+/**
+ * Icon keys arrive from the API, which is free to add one before the client
+ * knows it. An unknown key falls back to a neutral parcel rather than crashing
+ * a whole catalogue over a missing glyph.
+ */
+const FALLBACK_ICON: IconName = 'box';
+
+export const iconFor = (key: string): IconName =>
+    Object.prototype.hasOwnProperty.call(ICONS, key) ? (key as IconName) : FALLBACK_ICON;

@@ -1,0 +1,51 @@
+# laundrylo docs
+
+| Document                             | What it answers                                                   |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| [prd.md](./prd.md)                   | What the full-stack product is, for whom, and what remains demo   |
+| [architecture.md](./architecture.md) | How the frontend, API, authentication and PostgreSQL fit together |
+| [api-contract.md](./api-contract.md) | The live HTTP routes and their wire contract                      |
+| [schema.md](./schema.md)             | The implemented PostgreSQL tables, policies and derived data      |
+| [analytics.md](./analytics.md)       | What anonymous usage is measured and how bots are compared        |
+| [journey.md](./journey.md)           | The URL-only cycle experience at `/journey`, phase by phase       |
+
+## Reading order
+
+New to the project: **prd** -> **architecture** -> **api-contract** -> **schema**.
+
+Working on the backend: **architecture** section 3 -> **schema** ->
+**api-contract**. The code has its own readmes: [`api/`](../api/README.md) for
+running and deploying the service, and the root [README](../README.md) for the
+complete local frontend, backend and database setup.
+
+Operating the product: **architecture** -> **analytics** -> root deployment
+instructions. Analytics is deliberately separate from the application data
+contract and schema.
+
+Working on the cycle: **prd** -> **journey**. The journey doc is self-contained
+on design, and defers to the PRD on product rules. The cycle lives at `/journey`
+and is not linked from the app; the marketing homepage is the product surface,
+and the two read their shared facts from one source (journey.md section 20).
+
+## Where decisions live
+
+Product decisions are in the PRD. Interface decisions, and the reasoning behind
+the settled ones, are in **api-contract.md section 9**. The cycle's design and
+build decisions are in **journey.md section 19**. Those sections are the record of
+what was decided and why; update them there rather than restating conclusions in
+the other documents.
+
+## House style
+
+No em dashes. Use a spaced hyphen, a comma, or parentheses.
+
+## Status
+
+| Document     | Status                                                         |
+| ------------ | -------------------------------------------------------------- |
+| prd          | living; implemented and demo-only surfaces identified          |
+| journey      | living; implemented at `/journey` and intentionally unlinked   |
+| architecture | living; deployed full-stack topology and customer/owner writes |
+| schema       | implemented and verified against PostgreSQL 17                 |
+| api-contract | public and authenticated routes implemented and consumed       |
+| analytics    | integration implemented; self-hosted production activation due |

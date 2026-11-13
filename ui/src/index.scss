@@ -1,0 +1,184 @@
+@use './styles/fonts';
+@use './styles/theme';
+@use './styles/tokens' as t;
+
+* {
+    box-sizing: border-box;
+}
+
+h1,
+h2,
+h3 {
+    font-family: t.$font-display;
+    letter-spacing: t.$tracking-snug;
+}
+
+body {
+    margin: 0;
+    background: t.$color-cream;
+    color: t.$color-text;
+    font-family: t.$font-sans;
+    line-height: t.$line-height-snug;
+    -webkit-font-smoothing: antialiased;
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.375rem;
+    border: 0;
+    border-radius: t.$radius-md;
+    font: inherit;
+    font-family: t.$font-display;
+    font-weight: t.$font-weight-bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background-color t.$transition-fast,
+        transform t.$transition-fast;
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    &:not(:disabled):active {
+        transform: translateY(1px);
+    }
+
+    &--primary {
+        background: t.$color-primary;
+        color: t.$color-on-primary;
+
+        &:not(:disabled):hover {
+            background: t.$color-primary-dark;
+        }
+    }
+
+    &--lg {
+        padding: 1.125rem 2rem;
+        font-size: t.$font-size-body-lg;
+    }
+}
+
+.container {
+    max-width: t.$content-width;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.section {
+    padding: 6rem 0;
+
+    &--muted {
+        background: t.$color-surface-muted;
+    }
+
+    &__head {
+        max-width: 40rem;
+        margin: 0 auto 3.5rem;
+        text-align: center;
+    }
+
+    &__title {
+        margin: 0 0 1rem;
+        font-family: t.$font-display;
+        font-size: t.$font-size-section-title;
+        font-weight: t.$font-weight-black;
+        letter-spacing: t.$tracking-tight;
+    }
+
+    &__subtitle {
+        margin: 0;
+        color: t.$color-text-muted;
+        font-size: t.$font-size-body-lg;
+        line-height: t.$line-height-base;
+    }
+
+    @media (max-width: t.$breakpoint-md) {
+        padding: 4rem 0;
+    }
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 auto 1.25rem;
+    padding: 0.4375rem 0.875rem;
+    border-radius: t.$radius-pill;
+    background: t.$color-primary-soft;
+    color: t.$color-primary;
+    font-size: t.$font-size-md;
+    font-weight: t.$font-weight-bold;
+    letter-spacing: t.$tracking-wider;
+    text-transform: uppercase;
+}
+
+.card {
+    background: t.$color-surface;
+    border: 1px solid t.$color-border;
+    border-radius: t.$radius-md;
+    box-shadow: t.$shadow-sm;
+}
+
+/*
+ * `main` is focused on every client-side navigation so the keyboard lands at the
+ * top of the new page. It is not an interactive control, so it takes no focus
+ * ring; :focus-visible still applies to everything inside it.
+ */
+main:focus {
+    outline: none;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.skip-link {
+    position: fixed;
+    z-index: 1000;
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.75rem 1rem;
+    transform: translateY(-200%);
+    border-radius: t.$radius-sm;
+    background: t.$color-text;
+    color: t.$color-surface;
+    font-weight: t.$font-weight-bold;
+
+    &:focus {
+        transform: translateY(0);
+    }
+}
+
+// A route change that fades rather than cuts, for the routes that ask for it.
+// See SoftLink: the attribute goes on while the old page leaves and comes off
+// once the new one is standing, so the fetch in between happens behind the
+// fade instead of behind a loading state.
+body {
+    transition: opacity 420ms ease-out;
+}
+
+body[data-leaving] {
+    opacity: 0;
+    transition-duration: 220ms;
+    transition-timing-function: ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body,
+    body[data-leaving] {
+        opacity: 1;
+        transition: none;
+    }
+}

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix ui
+
+      - name: Type-check frontend
+        run: npm --prefix ui run typecheck
+
+      - name: Lint frontend
+        run: |
+          npm --prefix ui run lint
+          npm --prefix ui run lint:styles
+          npm --prefix ui run format:check
+
+      - name: Test frontend
+        run: npm --prefix ui test
+
+      - name: Build frontend
+        run: npm --prefix ui run build
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 54322:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci --prefix api
+
+      - name: Build the clean database
+        run: npm run db:local:reset
+
+      - name: Type-check backend
+        run: npm --prefix api run typecheck
+
+      - name: Lint backend
+        run: |
+          npm --prefix api run lint
+          npm --prefix api run format:check
+
+      - name: Test backend
+        run: npm --prefix api test
+
+      - name: Build backend
+        run: npm --prefix api run build

@@ -1,0 +1,260 @@
+@use '../../styles/tokens' as t;
+
+.page {
+    min-height: 70vh;
+    padding: 3rem 1.5rem 5rem;
+}
+
+.inner {
+    max-width: 62rem;
+    margin: 0 auto;
+}
+
+.pageHead {
+    max-width: 44rem;
+    margin-bottom: 2rem;
+
+    h1 {
+        margin: 0 0 0.625rem;
+        font-size: t.$font-size-page-title;
+        font-weight: t.$font-weight-black;
+        letter-spacing: t.$tracking-tight;
+    }
+
+    > p:last-child {
+        margin: 0;
+        color: t.$color-text-muted;
+        font-size: t.$font-size-body-lg;
+    }
+}
+
+.eyebrow {
+    margin: 0 0 0.5rem;
+    color: t.$color-primary;
+    font-size: t.$font-size-sm;
+    font-weight: t.$font-weight-bold;
+    letter-spacing: t.$tracking-wide;
+    text-transform: uppercase;
+}
+
+.form,
+.statusCard,
+.applicationCard {
+    padding: 1.5rem;
+}
+
+.form {
+    display: grid;
+    gap: 1.25rem;
+
+    h2 {
+        margin: 0;
+        font-size: t.$font-size-h3;
+    }
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.fieldGrid label,
+.description,
+.reviewActions > label {
+    display: grid;
+    gap: 0.4rem;
+    color: t.$color-text-muted;
+    font-size: t.$font-size-md;
+    font-weight: t.$font-weight-semibold;
+}
+
+.fieldGrid input,
+.description textarea,
+.reviewActions textarea {
+    width: 100%;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid t.$color-border;
+    border-radius: t.$radius-sm;
+    background: t.$color-surface;
+    color: t.$color-text;
+    font: inherit;
+}
+
+.fieldGrid input:focus-visible,
+.description textarea:focus-visible,
+.reviewActions textarea:focus-visible {
+    outline: 2px solid t.$color-primary;
+    outline-offset: 2px;
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    legend {
+        margin-bottom: 0.75rem;
+        font-weight: t.$font-weight-bold;
+    }
+
+    label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}
+
+.locationField {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid t.$color-border;
+    border-radius: t.$radius-sm;
+
+    h3,
+    p {
+        margin: 0;
+    }
+
+    > p {
+        color: t.$color-text-muted;
+    }
+}
+
+.locationValue {
+    overflow-wrap: anywhere;
+}
+
+.imageField {
+    display: grid;
+    justify-items: start;
+    gap: 0.5rem;
+
+    label {
+        display: grid;
+        gap: 0.4rem;
+        color: t.$color-text-muted;
+        font-weight: t.$font-weight-semibold;
+    }
+
+    p {
+        margin: 0;
+        color: t.$color-text-muted;
+        font-size: t.$font-size-sm;
+    }
+}
+
+.imagePreview,
+.applicationImage {
+    width: min(100%, 24rem);
+    max-height: 16rem;
+    border-radius: t.$radius-sm;
+    object-fit: cover;
+}
+
+.applicationImage {
+    margin-top: 1rem;
+}
+
+.statusCard {
+    h2 {
+        margin: 0 0 0.5rem;
+    }
+
+    > p:last-child {
+        color: t.$color-text-muted;
+    }
+}
+
+.status {
+    color: t.$color-primary;
+    font-weight: t.$font-weight-bold;
+}
+
+.actions,
+.reviewActions > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.error {
+    color: t.$color-danger;
+}
+
+.success {
+    color: t.$color-primary;
+}
+
+.applicationList {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.applicationHead {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    h2 {
+        margin: 0;
+    }
+
+    time {
+        color: t.$color-text-muted;
+    }
+}
+
+.details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem 1.25rem;
+    margin: 1.25rem 0;
+
+    div {
+        min-width: 0;
+    }
+
+    dt {
+        color: t.$color-text-muted;
+        font-size: t.$font-size-sm;
+        font-weight: t.$font-weight-bold;
+    }
+
+    dd {
+        margin: 0.2rem 0 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.reviewActions {
+    margin-top: 1.25rem;
+
+    > div {
+        margin-top: 0.75rem;
+    }
+}
+
+@media (max-width: t.$breakpoint-sm) {
+    .page {
+        padding: 2rem 1rem 3rem;
+    }
+
+    .fieldGrid,
+    .details {
+        grid-template-columns: 1fr;
+    }
+}

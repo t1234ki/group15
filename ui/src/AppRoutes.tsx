@@ -1,0 +1,158 @@
+import React, { lazy } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import GuestRoute from './common-ui/guest-route/GuestRoute';
+import Layout from './common-ui/layout/Layout';
+import ProtectedRoute from './common-ui/protected-route/ProtectedRoute';
+import Home from './pages/home/Home';
+
+// Home ships in the initial bundle - it is the common entry point. Every other
+// route is fetched on demand; Layout provides the Suspense boundary.
+const SignIn = lazy(() => import('./pages/auth/SignIn'));
+const SignUp = lazy(() => import('./pages/auth/SignUp'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const AuthCallback = lazy(() => import('./pages/auth/AuthCallback'));
+const UpdatePassword = lazy(() => import('./pages/auth/UpdatePassword'));
+const PlusPage = lazy(() => import('./pages/plus/PlusPage'));
+const JourneyPage = lazy(() => import('./pages/journey/JourneyPage'));
+const TermsPage = lazy(() => import('./pages/terms/TermsPage'));
+const ServicesPage = lazy(() => import('./pages/services/ServicesPage'));
+const PartnerPage = lazy(() => import('./pages/partner/PartnerPage'));
+const CartPage = lazy(() => import('./pages/cart/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/checkout/CheckoutPage'));
+const OrderConfirmed = lazy(() => import('./pages/checkout/OrderConfirmed'));
+const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
+const AddAddressPage = lazy(() => import('./pages/profile/AddAddressPage'));
+const BookingsPage = lazy(() => import('./pages/bookings/BookingsPage'));
+const OrderDetailPage = lazy(() => import('./pages/bookings/OrderDetailPage'));
+const PartnerOrdersPage = lazy(() => import('./pages/partner-portal/PartnerOrdersPage'));
+const PartnerOrderDetailPage = lazy(() => import('./pages/partner-portal/PartnerOrderDetailPage'));
+const PartnerSettingsPage = lazy(() => import('./pages/partner-portal/PartnerSettingsPage'));
+const PartnerCatalogPage = lazy(() => import('./pages/partner-portal/PartnerCatalogPage'));
+const OwnerDashboard = lazy(() => import('./pages/partner-portal/OwnerDashboard'));
+const AdminDashboard = lazy(() => import('./pages/partner-portal/AdminDashboard'));
+const NotFoundPage = lazy(() => import('./pages/not-found/NotFoundPage'));
+
+const AppRoutes: React.FC = () => (
+    <Routes>
+        <Route
+            path="/"
+            element={<Layout />}
+        >
+            <Route
+                index
+                element={<Home />}
+            />
+            <Route element={<GuestRoute />}>
+                <Route
+                    path="signin"
+                    element={<SignIn />}
+                />
+                <Route
+                    path="signup"
+                    element={<SignUp />}
+                />
+            </Route>
+            <Route
+                path="forgot-password"
+                element={<ForgotPassword />}
+            />
+            <Route
+                path="auth/callback"
+                element={<AuthCallback />}
+            />
+            <Route
+                path="update-password"
+                element={<UpdatePassword />}
+            />
+            <Route
+                path="plus"
+                element={<PlusPage />}
+            />
+            <Route
+                path="journey"
+                element={<JourneyPage />}
+            />
+            <Route
+                path="terms"
+                element={<TermsPage />}
+            />
+            <Route
+                path="laundries"
+                element={<ServicesPage />}
+            />
+            <Route
+                path="laundries/:partnerId"
+                element={<PartnerPage />}
+            />
+            <Route
+                path="cart"
+                element={<CartPage />}
+            />
+            <Route element={<ProtectedRoute />}>
+                <Route
+                    path="checkout"
+                    element={<CheckoutPage />}
+                />
+                <Route
+                    path="order-confirmed"
+                    element={<OrderConfirmed />}
+                />
+                <Route
+                    path="profile"
+                    element={<ProfilePage />}
+                />
+                <Route
+                    path="profile/addresses/new"
+                    element={<AddAddressPage />}
+                />
+                <Route
+                    path="profile/addresses/:addressId/edit"
+                    element={<AddAddressPage />}
+                />
+                <Route
+                    path="bookings"
+                    element={<BookingsPage />}
+                />
+                <Route
+                    path="bookings/:orderId"
+                    element={<OrderDetailPage />}
+                />
+                <Route
+                    path="partner/orders"
+                    element={<PartnerOrdersPage />}
+                />
+                <Route
+                    path="partner/orders/:orderId"
+                    element={<PartnerOrderDetailPage />}
+                />
+                <Route
+                    path="partner/settings"
+                    element={<PartnerSettingsPage />}
+                />
+                <Route
+                    path="partner/catalogue"
+                    element={<PartnerCatalogPage />}
+                />
+                <Route
+                    path="owner"
+                    element={<OwnerDashboard />}
+                />
+                <Route
+                    path="admin"
+                    element={<AdminDashboard />}
+                />
+            </Route>
+
+            {/*
+             * A dead URL says so, rather than redirecting home. The redirect was
+             * silent, and `replace` meant Back could not undo it.
+             */}
+            <Route
+                path="*"
+                element={<NotFoundPage />}
+            />
+        </Route>
+    </Routes>
+);
+
+export default AppRoutes;

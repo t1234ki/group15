@@ -1,0 +1,51 @@
+@use '../../styles/tokens' as t;
+
+.search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+// The location control can report browser permission and GPS errors below.
+.searchError {
+    flex-basis: 100%;
+    color: t.$color-danger;
+    font-size: t.$font-size-sm;
+}
+
+.searchSubmit {
+    display: inline-flex;
+    gap: 0.625rem;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border: 0;
+    border-radius: t.$radius-md;
+    background: t.$color-primary;
+    color: t.$color-on-primary;
+    font: inherit;
+    font-weight: t.$font-weight-bold;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color t.$transition-fast;
+
+    &:not(:disabled):hover {
+        background: t.$color-primary-dark;
+    }
+
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+}
+
+@media (max-width: t.$breakpoint-md) {
+    .search {
+        flex-direction: column;
+    }
+
+    .searchSubmit {
+        width: 100%;
+        justify-content: center;
+    }
+}
