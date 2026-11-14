@@ -259,6 +259,8 @@ Import this repository into Vercel and set the project **Root Directory** to
 `ui`. Use `npm ci` as the install command, `npm run build` as the build command,
 and `dist` as the output directory. `ui/vercel.json` sends app routes to the
 single-page app entry point, so refreshing a route such as `/laundries` works.
+Vercel only builds and hosts the frontend; it does not apply the Supabase
+migrations. Prepare the target Supabase project separately before deploying.
 
 Add these variables under **Project Settings → Environment Variables** for
 Production (and Preview if you want preview deployments to use Supabase):
