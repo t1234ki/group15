@@ -14,6 +14,16 @@ export const UPDATE_COPY = {
     dismiss: 'Dismiss update notice',
 } as const;
 
+export const INSTALL_COPY = {
+    title: 'Install SI MA ME',
+    message: 'Add SI MA ME to your home screen for quicker access.',
+    install: 'Install app',
+    iosInstructions: 'In Safari, tap Share, then Add to Home Screen.',
+    browserInstructions: 'Open your browser menu and choose Install app or Add to Home Screen.',
+    later: 'Maybe later',
+    installError: 'Installation could not start. Try installing from your browser menu instead.',
+} as const;
+
 export const TERMS_COPY = {
     back: 'Back to home',
     title: 'Terms',

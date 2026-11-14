@@ -48,7 +48,8 @@ bookings and order tracking on both desktop and mobile.
 - Plus membership selection with server-computed pricing and discounts
 - Supabase email/password authentication, email confirmation, password recovery,
   Google OAuth with PKCE, session restoration and current-session sign-out
-- Installable PWA shell with offline caching for safe public reads
+- Installable PWA shell with offline caching for safe public reads, an in-app
+  install prompt, and Add to Home Screen guidance for iOS
 - PostgreSQL migrations, seed data, Row Level Security and transactional database functions
 - Privacy-conscious Umami page views, product funnels and server-confirmed order events
 - CI gates for frontend types, lint, tests and production builds

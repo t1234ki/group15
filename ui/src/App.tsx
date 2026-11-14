@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import AppRoutes from './AppRoutes';
 import ErrorBoundary from './common-ui/error-boundary/ErrorBoundary';
 import ErrorFallback from './common-ui/error-boundary/ErrorFallback';
+import InstallPrompt from './common-ui/install-prompt/InstallPrompt';
 import UpdatePrompt from './common-ui/update-prompt/UpdatePrompt';
 
 const App: React.FC = () => (
@@ -22,6 +23,7 @@ const App: React.FC = () => (
                 <CartProvider>
                     <BrowserRouter>
                         <AppRoutes />
+                        <InstallPrompt />
                         <UpdatePrompt />
                     </BrowserRouter>
                 </CartProvider>

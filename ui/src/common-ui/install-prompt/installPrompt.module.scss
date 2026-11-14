@@ -1,0 +1,87 @@
+@use '../../styles/tokens' as t;
+
+.installPrompt {
+    position: fixed;
+    left: 50%;
+    bottom: 5.5rem;
+    z-index: t.$z-toast;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: min(36rem, calc(100vw - 2rem));
+    padding: 1rem;
+    transform: translateX(-50%);
+    border: 1px solid t.$color-border;
+    border-radius: t.$radius-lg;
+    background: t.$color-surface;
+    color: t.$color-text;
+    box-shadow: t.$shadow-lg;
+
+    &Icon {
+        display: grid;
+        flex: 0 0 2.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        place-items: center;
+        border-radius: t.$radius-md;
+        background: t.$color-primary;
+        color: t.$color-on-primary;
+    }
+
+    &Content {
+        flex: 1;
+        min-width: 0;
+
+        h2 {
+            margin: 0;
+            font-size: t.$font-size-md;
+        }
+
+        p {
+            margin: 0.25rem 0 0;
+            color: t.$color-text-muted;
+            font-size: t.$font-size-sm;
+        }
+    }
+
+    &Instructions {
+        font-weight: t.$font-weight-semibold;
+    }
+
+    &Action,
+    &Dismiss {
+        flex-shrink: 0;
+        align-self: center;
+        padding: 0.5rem 0.85rem;
+        border: 0;
+        border-radius: t.$radius-pill;
+        font-size: t.$font-size-sm;
+        font-weight: t.$font-weight-bold;
+        cursor: pointer;
+    }
+
+    &Action {
+        background: t.$color-primary;
+        color: t.$color-on-primary;
+    }
+
+    &Dismiss {
+        background: transparent;
+        color: t.$color-text-muted;
+    }
+}
+
+@media (width <= 36rem) {
+    .installPrompt {
+        bottom: 5rem;
+        flex-wrap: wrap;
+
+        &Content {
+            flex-basis: calc(100% - 3.25rem);
+        }
+
+        &Action {
+            margin-left: 3.25rem;
+        }
+    }
+}
