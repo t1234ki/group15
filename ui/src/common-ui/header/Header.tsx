@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BRAND } from '../../config/brandConfig';
 import { HEADER_ACTIONS, PRIMARY_NAV, ROUTES } from '../../config/navigationConfig';
 import { useAuth } from '../../context/AuthContext';
@@ -19,8 +19,29 @@ const Header: React.FC = () => {
     // Plus counts as a line so the badge matches what the cart shows.
     const cartCount = itemCount + (hasPlus ? 1 : 0);
     const navigate = useNavigate();
+    const location = useLocation();
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [signOutError, setSignOutError] = useState<string | null>(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    useEffect(() => {
+        setIsMenuOpen(false);
+    }, [location.pathname, location.hash]);
+
+    useEffect(() => {
+        if (!isMenuOpen) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsMenuOpen(false);
+                menuButtonRef.current?.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isMenuOpen]);
 
     const handleSignOut = async () => {
         setSignOutError(null);
@@ -46,8 +67,9 @@ const Header: React.FC = () => {
                 </Link>
 
                 <nav
-                    className={styles.headerNav}
+                    className={`${styles.headerNav} ${isMenuOpen ? styles.headerNavOpen : ''}`}
                     aria-label="Primary"
+                    id="primary-navigation"
                 >
                     {/* Router links, not plain anchors: a bare href to
                         "/#how-it-works" is a full page load, and the browser
@@ -59,10 +81,18 @@ const Header: React.FC = () => {
                             key={href}
                             className={styles.headerLink}
                             to={href}
+                            onClick={() => setIsMenuOpen(false)}
                         >
                             {label}
                         </Link>
                     ))}
+                    <Link
+                        className={`button button--primary ${styles.headerNavCta}`}
+                        to={guest.cta.href}
+                        onClick={() => setIsMenuOpen(false)}
+                    >
+                        {guest.cta.label}
+                    </Link>
                 </nav>
 
                 <div className={styles.headerActions}>
@@ -147,6 +177,17 @@ const Header: React.FC = () => {
                             </Link>
                         </>
                     )}
+                    <button
+                        ref={menuButtonRef}
+                        className={styles.headerMenuToggle}
+                        type="button"
+                        aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                        aria-expanded={isMenuOpen}
+                        aria-controls="primary-navigation"
+                        onClick={() => setIsMenuOpen((open) => !open)}
+                    >
+                        <Icon name={isMenuOpen ? 'close' : 'menu'} />
+                    </button>
                 </div>
             </div>
         </header>

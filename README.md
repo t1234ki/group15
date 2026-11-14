@@ -253,6 +253,32 @@ to activate anonymous product analytics. It includes the SPA `_redirects` rule
 and a `_headers` rule that forces `service-worker.js` revalidation. Keep
 generated source maps out of the public directory.
 
+#### Deploying on Vercel
+
+Import this repository into Vercel and set the project **Root Directory** to
+`ui`. Use `npm ci` as the install command, `npm run build` as the build command,
+and `dist` as the output directory. `ui/vercel.json` sends app routes to the
+single-page app entry point, so refreshing a route such as `/laundries` works.
+
+Add these variables under **Project Settings → Environment Variables** for
+Production (and Preview if you want preview deployments to use Supabase):
+
+| Variable | Value |
+| --- | --- |
+| `SUPABASE_URL` | The project URL from the Supabase project's Connect panel |
+| `SUPABASE_PUBLISHABLE_KEY` | The project's publishable key (or legacy anon key) |
+
+`UMAMI_HOST_URL`, `UMAMI_WEBSITE_ID` and `UMAMI_DOMAINS` are optional; add all
+three only if you use Umami analytics. `UMAMI_DOMAINS` should contain the
+production hostname, for example `your-project.vercel.app`, or your custom
+domain. Redeploy after changing variables because the frontend embeds them at
+build time.
+
+Only the Supabase URL and publishable/anon key belong in Vercel's frontend
+variables. They are delivered to the browser. **Never add** a Supabase
+service-role key, database password, Google OAuth client secret, or other
+server credential to this frontend project.
+
 ### Supabase database
 
 Create a hosted Supabase project, link the repository and apply the reviewed
@@ -271,15 +297,16 @@ password, service-role key or `/api` proxy.
 
 ### Authentication
 
-1. Set the Supabase Auth Site URL to `https://laundrylo.com`. Add
-   `https://laundrylo.com/auth/callback` and
-   `https://laundrylo.com/update-password` to the redirect allow list. Keep
-   localhost redirects on the local project, not the production project.
+1. Set the Supabase Auth Site URL to your production Vercel URL (or custom
+   domain). Add that origin's `/auth/callback` and `/update-password` URLs to
+   the redirect allow list. Keep localhost redirects on the local project, not
+   the production project.
 2. Enable email/password authentication, email confirmation and secure password
    changes. Configure production SMTP before relying on verification or
    password-reset email delivery.
 3. For Google sign-in, create a Web OAuth client and add
-   `https://laundrylo.com` as an authorised JavaScript origin. Add
+   the production Vercel URL (or custom domain) as an authorised JavaScript
+   origin. Add
    `https://<project-ref>.supabase.co/auth/v1/callback` as an authorised redirect
    URI, then store the client ID and secret in the Supabase Google provider
    settings and enable the provider.

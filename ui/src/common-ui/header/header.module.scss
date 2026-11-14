@@ -29,6 +29,28 @@
         gap: 2.25rem;
     }
 
+    &NavCta {
+        display: none;
+    }
+
+    &MenuToggle {
+        display: none;
+        place-items: center;
+        flex-shrink: 0;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        border: 1px solid t.$color-border;
+        border-radius: t.$radius-sm;
+        background: t.$color-surface;
+        color: t.$color-text;
+        cursor: pointer;
+
+        &:hover {
+            background: t.$color-surface-muted;
+        }
+    }
+
     &Link {
         color: t.$color-text-muted;
         font-weight: t.$font-weight-semibold;
@@ -159,9 +181,43 @@
         font-size: t.$font-size-md;
     }
 
-    @media (max-width: t.$breakpoint-md) {
+    @media (width <= 56.25rem) {
         &Nav {
             display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            flex-direction: column;
+            gap: 0;
+            padding: 0.5rem 1.5rem 1rem;
+            border-bottom: 1px solid t.$color-border;
+            background: t.$color-surface;
+            box-shadow: t.$shadow-md;
+        }
+
+        &NavOpen {
+            display: flex;
+        }
+
+        &Link {
+            display: flex;
+            align-items: center;
+            min-height: 2.75rem;
+            border-bottom: 1px solid t.$color-border;
+        }
+
+        &NavCta {
+            display: inline-flex;
+            align-self: flex-start;
+            align-items: center;
+            min-height: 2.75rem;
+            margin-top: 0.75rem;
+            white-space: nowrap;
+        }
+
+        &MenuToggle {
+            display: grid;
         }
 
         &Inner {
@@ -177,9 +233,8 @@
             padding: 0.75rem 0.875rem;
         }
 
-        &Cta {
-            padding: 0.5rem 0.875rem;
-            font-size: t.$font-size-lg;
+        &Actions &Cta {
+            display: none;
         }
 
         &Actions {
