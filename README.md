@@ -100,7 +100,7 @@ See [docs/architecture.md](docs/architecture.md) for the detailed design.
 | Authentication | Supabase Auth JS, email/password, Google OAuth with PKCE             |
 | Analytics      | Self-hosted Umami, sanitized product events and Cloudflare edge data |
 | Quality        | ESLint, Stylelint, Prettier, Vitest, Testing Library, GitHub Actions |
-| Hosting        | Netlify frontend behind Cloudflare, hosted Supabase                  |
+| Hosting        | Vercel frontend, hosted Supabase                                     |
 
 ## Repository layout
 
@@ -256,9 +256,10 @@ generated source maps out of the public directory.
 #### Deploying on Vercel
 
 Import this repository into Vercel and set the project **Root Directory** to
-`ui`. Use `npm ci` as the install command, `npm run build` as the build command,
-and `dist` as the output directory. `ui/vercel.json` sends app routes to the
-single-page app entry point, so refreshing a route such as `/laundries` works.
+`ui`. `ui/vercel.json` configures `npm ci` as the install command,
+`npm run build` as the build command, and `dist` as the output directory. It
+also sends app routes to the single-page app entry point, so refreshing a route
+such as `/laundries` works.
 Vercel only builds and hosts the frontend; it does not apply the Supabase
 migrations. Prepare the target Supabase project separately before deploying.
 
