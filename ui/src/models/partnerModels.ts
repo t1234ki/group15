@@ -25,6 +25,8 @@ export interface Partner {
     rating: number | null;
     reviewCount: number;
     address: PartnerAddress;
+    latitude: number | null;
+    longitude: number | null;
     /**
      * A property of this search rather than of the partner, and null when there
      * was no customer location to measure from.

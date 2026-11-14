@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { Partner, PartnerTag } from '../models/partnerModels';
 import { SERVICE_TYPES } from '../data/services';
@@ -11,6 +11,11 @@ import { useAsync } from './useAsync';
 interface Coordinates {
     latitude: number;
     longitude: number;
+}
+
+interface PartnerListingOptions {
+    allBusinesses?: boolean;
+    enabled?: boolean;
 }
 
 const coordinatesFromState = (state: unknown): Coordinates | null => {
@@ -42,13 +47,16 @@ const coordinatesFromState = (state: unknown): Coordinates | null => {
  * controls, and all four go to the server: filtering and ordering happen where
  * the whole catalogue is, not over whichever page happened to arrive.
  */
-export const usePartnerListing = () => {
+export const usePartnerListing = ({
+    allBusinesses = false,
+    enabled = true,
+}: PartnerListingOptions = {}) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const routerLocation = useLocation();
     const [coordinates, setCoordinates] = useState(() =>
         coordinatesFromState(routerLocation.state)
     );
-    const hasLocation = coordinates !== null;
+    const hasLocation = !allBusinesses && coordinates !== null;
     const latitude = coordinates?.latitude;
     const longitude = coordinates?.longitude;
 
@@ -61,7 +69,7 @@ export const usePartnerListing = () => {
     // hand-edited URL has to mean "no filter" rather than "no results".
     const requestedService = searchParams.get('service');
     const matched = SERVICE_TYPES.find(({ id }) => id === requestedService);
-    const service = matched?.id ?? null;
+    const service = allBusinesses ? null : (matched?.id ?? null);
 
     const [activeTags, setActiveTags] = useState<PartnerTag[]>([]);
     const [sortKey, setSortKey] = useState<SortKey>(DEFAULT_SORT);
@@ -80,31 +88,43 @@ export const usePartnerListing = () => {
     }, [effectiveSortKey, hasLocation, sortKey]);
 
     // Arrays are rebuilt every render, so the dependency is their content.
-    const tagKey = [...activeTags].sort().join(',');
-    const queryKey = [latitude ?? '', longitude ?? '', service ?? '', tagKey, effectiveSortKey].join(
-        '|'
+    const effectiveTags = useMemo(
+        () => (allBusinesses ? [] : activeTags),
+        [activeTags, allBusinesses]
     );
+    const tagKey = effectiveTags.slice().sort().join(',');
+    const queryKey = [
+        latitude ?? '',
+        longitude ?? '',
+        service ?? '',
+        tagKey,
+        effectiveSortKey,
+    ].join('|');
 
     const buildQuery = useCallback(
         (): PartnerQuery => ({
-            latitude,
-            longitude,
-            services: service ? [service] : undefined,
-            tags: activeTags.length > 0 ? activeTags : undefined,
-            sort: effectiveSortKey,
+            latitude: allBusinesses ? undefined : latitude,
+            longitude: allBusinesses ? undefined : longitude,
+            services: !allBusinesses && service ? [service] : undefined,
+            tags: effectiveTags.length > 0 ? effectiveTags : undefined,
+            sort: allBusinesses ? DEFAULT_SORT : effectiveSortKey,
             limit: PARTNER_PAGE_SIZE,
         }),
-        [latitude, longitude, service, activeTags, effectiveSortKey]
+        [allBusinesses, latitude, longitude, service, effectiveTags, effectiveSortKey]
     );
 
     const firstPage = useAsync(
-        (signal) => listPartners(buildQuery(), signal),
-        [latitude, longitude, service, tagKey, effectiveSortKey]
+        (signal) =>
+            enabled
+                ? listPartners(buildQuery(), signal)
+                : Promise.resolve({ data: [], nextCursor: null }),
+        [enabled, allBusinesses, latitude, longitude, service, tagKey, effectiveSortKey]
     );
     const reportedQuery = useRef<string | null>(null);
 
     useEffect(() => {
-        if (!firstPage.data || reportedQuery.current === queryKey) return;
+        if (allBusinesses || !enabled || !firstPage.data || reportedQuery.current === queryKey)
+            return;
         reportedQuery.current = queryKey;
         analytics.trackEvent(ANALYTICS_EVENTS.partnerResults, {
             result_count: firstPage.data.data.length,
@@ -114,7 +134,16 @@ export const usePartnerListing = () => {
             tag_count: activeTags.length,
             sort: effectiveSortKey,
         });
-    }, [activeTags.length, effectiveSortKey, firstPage.data, hasLocation, queryKey, service]);
+    }, [
+        activeTags.length,
+        allBusinesses,
+        enabled,
+        effectiveSortKey,
+        firstPage.data,
+        hasLocation,
+        queryKey,
+        service,
+    ]);
 
     // Pages beyond the first are appended rather than replacing what is shown.
     const [appended, setAppended] = useState<Partner[]>([]);
@@ -178,6 +207,7 @@ export const usePartnerListing = () => {
 
     return {
         hasLocation,
+        location: allBusinesses ? null : coordinates,
         service,
         serviceName: matched?.name ?? '',
         clearService,

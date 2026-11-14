@@ -286,6 +286,10 @@ server credential to this frontend project.
 
 Create a hosted Supabase project, link the repository and apply the reviewed
 migrations. Do not load `supabase/seed.sql` into production; it is demo data.
+The latest migration adds simulated card/mobile-money payment reporting and
+the 5% platform commission used by the admin and laundry-owner dashboards.
+These payment choices do not charge or transfer real money; apply the migration
+before enabling the updated booking flow.
 
 ```bash
 npx supabase login

@@ -70,6 +70,13 @@
         font-size: t.$font-size-sm;
     }
 
+    &SearchBrowseAll {
+        align-self: center;
+        color: t.$color-primary;
+        font-size: t.$font-size-md;
+        font-weight: t.$font-weight-semibold;
+    }
+
     &Field {
         position: relative;
         flex: 1;

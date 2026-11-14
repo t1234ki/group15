@@ -1,4 +1,5 @@
 import { Address, AddressTextField } from '../models/bookingModels';
+import type { PaymentMethod } from '../models/paymentModels';
 
 export interface AddressFieldConfig {
     name: AddressTextField;
@@ -54,6 +55,13 @@ export const CHECKOUT_COPY = {
     scheduleHeading: 'Schedule Pickup & Delivery',
     scheduleSubtitle: 'Select your preferred date and time',
     summaryHeading: 'Order Summary',
+    paymentHeading: 'Payment method',
+    paymentSubtitle: 'Choose how to complete this demo booking.',
+    cashPayment: 'Cash on pickup',
+    demoCardPayment: 'Demo card payment',
+    demoMobileMoneyPayment: 'Demo mobile money',
+    demoPaymentNote: 'Demo only: no money will be charged and no payment details are collected.',
+    demoPaymentSuccess: 'Demo payment simulated successfully. No real money was charged.',
     orderingFrom: 'Ordering from',
     checkingPartner: 'Checking whether this laundry is accepting orders',
     partnerCheckFailed: "We couldn't verify that this laundry is accepting orders.",
@@ -68,6 +76,24 @@ export const CHECKOUT_COPY = {
     confirm: 'Confirm Booking',
     confirming: 'Placing order...',
 } as const;
+
+export const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string; detail: string }[] = [
+    {
+        value: 'cash_on_pickup',
+        label: CHECKOUT_COPY.cashPayment,
+        detail: CHECKOUT_COPY.paymentNote,
+    },
+    {
+        value: 'demo_card',
+        label: CHECKOUT_COPY.demoCardPayment,
+        detail: 'Simulates a successful card payment without asking for card details.',
+    },
+    {
+        value: 'demo_mobile_money',
+        label: CHECKOUT_COPY.demoMobileMoneyPayment,
+        detail: 'Simulates a successful mobile-money payment without sending a prompt.',
+    },
+];
 
 /** Shown beneath a field once the customer has tried to submit without it. */
 export const VALIDATION_COPY = {

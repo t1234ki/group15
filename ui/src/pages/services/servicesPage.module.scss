@@ -120,6 +120,29 @@
         list-style: none;
     }
 
+    &ResultSection {
+        min-width: 0;
+    }
+
+    &ResultHeading {
+        margin: 0 0 1rem;
+        font-size: t.$font-size-h3;
+    }
+
+    &AllBusinesses {
+        margin-top: 3rem;
+
+        > h2 {
+            margin: 0 0 0.5rem;
+            font-size: t.$font-size-h2;
+        }
+
+        > p {
+            margin: 0 0 1.5rem;
+            color: t.$color-text-muted;
+        }
+    }
+
     &Empty {
         padding: 3rem 0;
         color: t.$color-text-muted;

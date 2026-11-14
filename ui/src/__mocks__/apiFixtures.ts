@@ -121,6 +121,8 @@ const toPartner = (seed: Seed, withDistance: boolean): Partner => ({
         line2: seed.line2,
         city: 'Accra',
     },
+    latitude: null,
+    longitude: null,
     distanceMeters: withDistance ? seed.distanceMeters : null,
     tags: seed.tags,
     services: seed.services,

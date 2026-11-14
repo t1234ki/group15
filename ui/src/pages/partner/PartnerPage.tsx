@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AsyncBoundary from '../../common-ui/async-boundary/AsyncBoundary';
 import BackLink from '../../common-ui/back-link/BackLink';
@@ -31,10 +31,18 @@ const PartnerPage: React.FC = () => {
         confirmPartnerSwitch,
         viewCart,
     } = usePartnerMenu();
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
     const partnerSwitchTrigger = useRef<HTMLButtonElement | null>(null);
     const cartButton = useRef<HTMLButtonElement | null>(null);
     const replaceCartDialog = useRef<HTMLElement | null>(null);
     const focusAfterPartnerSwitch = useRef<'trigger' | 'cart' | null>(null);
+    const visibleCategories = categories.filter(({ id }) => selectedCategoryIds.includes(id));
+
+    useEffect(() => {
+        if (state.data) {
+            setSelectedCategoryIds(state.data.categories.map(({ id }) => id));
+        }
+    }, [state.data]);
 
     useEffect(() => {
         if (pendingPartnerSwitch || focusAfterPartnerSwitch.current === null) return;
@@ -155,8 +163,43 @@ const PartnerPage: React.FC = () => {
                             <p className={styles.partnerPageEmpty}>{PARTNER_COPY.emptyCatalogue}</p>
                         )}
 
+                        {loaded.isOpen && categories.length > 0 && (
+                            <fieldset className={`card ${styles.serviceChoices}`}>
+                                <legend>{PARTNER_COPY.chooseServices}</legend>
+                                <p>{PARTNER_COPY.chooseServicesHint}</p>
+                                <div className={styles.serviceChoicesList}>
+                                    {categories.map((category) => (
+                                        <label key={category.id}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCategoryIds.includes(category.id)}
+                                                onChange={(event) =>
+                                                    setSelectedCategoryIds((current) =>
+                                                        event.target.checked
+                                                            ? [...current, category.id]
+                                                            : current.filter(
+                                                                  (id) => id !== category.id
+                                                              )
+                                                    )
+                                                }
+                                            />
+                                            <span>{category.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
+                        )}
+
                         {loaded.isOpen &&
-                            categories.map((category) => (
+                            categories.length > 0 &&
+                            visibleCategories.length === 0 && (
+                                <p className={styles.partnerPageEmpty}>
+                                    {PARTNER_COPY.chooseServicePrompt}
+                                </p>
+                            )}
+
+                        {loaded.isOpen &&
+                            visibleCategories.map((category) => (
                                 <section
                                     key={category.id}
                                     className={styles.partnerPageCategory}

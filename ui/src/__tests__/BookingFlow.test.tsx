@@ -1,10 +1,11 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MOCK_USER } from '../data/user';
 import { analytics } from '../services/analyticsServices';
 import { ANALYTICS_EVENTS } from '../config/analyticsConfig';
-import { MOCK_USER } from '../data/user';
-import { fakeAuthService } from '../__mocks__/authService';
+import { CHECKOUT_COPY } from '../config/bookingConfig';
 import { upcomingDates } from '../utils/datesUtils';
+import { fakeAuthService } from '../__mocks__/authService';
 import { authenticateTestUser, renderApp } from '../__mocks__/renderWithProviders';
 import { dayButton, pickSlot, slotButtons, waitForSchedule } from '../__mocks__/scheduleQueries';
 
@@ -99,6 +100,9 @@ describe('order flow', () => {
         const card = (await screen.findByText('SparkleWash Express')).closest('article')!;
         await user.click(within(card).getByRole('link', { name: /book now/i }));
         expect(await screen.findByRole('heading', { name: 'Wash & Fold' })).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'Wash & Fold' })).toBeChecked();
+        await user.click(screen.getByRole('checkbox', { name: 'Wash & Iron' }));
+        expect(screen.queryByRole('heading', { name: 'Wash & Iron' })).toBeNull();
 
         await user.click(
             await screen.findByRole('button', { name: 'Add Shirt / T-shirt, Wash & Fold' })
@@ -130,6 +134,8 @@ describe('order flow', () => {
         await fillAddress();
         await pickSlot('Pickup', today);
         await pickSlot('Delivery', tomorrow);
+        expect(screen.getByRole('radio', { name: /demo mobile money/i })).toBeInTheDocument();
+        await user.click(screen.getByRole('radio', { name: /demo card payment/i }));
 
         expect(confirm()).toBeEnabled();
         await user.click(confirm());
@@ -140,6 +146,7 @@ describe('order flow', () => {
         // The friendly reference, not the lookup id: `LL-2026-4821`. The two are
         // separate values now, and only this one is ever shown.
         expect(screen.getByText(/^Order #LL-\d{4}-\d{4}$/)).toBeInTheDocument();
+        expect(await screen.findByText(CHECKOUT_COPY.demoPaymentSuccess)).toBeInTheDocument();
 
         const events = track.mock.calls.map(([name]) => name);
         expect(events).toEqual(

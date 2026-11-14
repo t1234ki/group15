@@ -1,50 +1,120 @@
-import React from 'react';
-import Icon from '../../common-ui/icons/Icon';
-import { ICON_SIZE } from '../../config/brandConfig';
+import * as L from 'leaflet';
+import React, { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
 import { LISTING_COPY } from '../../config/listingConfig';
+import { ROUTES } from '../../config/navigationConfig';
+import type { Partner } from '../../models/partnerModels';
 import styles from './mapPlaceholder.module.scss';
 
 interface MapPlaceholderProps {
-    /** Pins stand in for the partners in the current result set. */
-    pinCount: number;
+    partners: Partner[];
+    location: { latitude: number; longitude: number } | null;
+    selectedPartnerId: string | null;
+    onSelectPartner: (partnerId: string) => void;
 }
 
-// Fixed offsets keep the stand-in pins from jumping between renders.
-const PIN_POSITIONS = [
-    { top: '12%', left: '20%' },
-    { top: '20%', left: '68%' },
-    { top: '30%', left: '42%' },
-    { top: '74%', left: '28%' },
-    { top: '82%', left: '62%' },
-    { top: '66%', left: '80%' },
-];
+const DEFAULT_CENTER: L.LatLngExpression = [5.6037, -0.187];
+type LocatedPartner = Partner & { latitude: number; longitude: number };
 
-const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ pinCount }) => (
-    <aside
-        className={styles.mapView}
-        aria-label={LISTING_COPY.mapTitle}
-    >
-        {PIN_POSITIONS.slice(0, pinCount).map((position, index) => (
-            <span
-                key={position.left + position.top}
-                className={styles.mapViewPin}
-                style={position}
-                aria-hidden="true"
-            >
-                {index + 1}
-            </span>
-        ))}
+const partnerHasCoordinates = (partner: Partner): partner is LocatedPartner =>
+    typeof partner.latitude === 'number' &&
+    Number.isFinite(partner.latitude) &&
+    typeof partner.longitude === 'number' &&
+    Number.isFinite(partner.longitude);
 
-        <div className={styles.mapViewBody}>
-            <Icon
-                name="navigation"
-                size={ICON_SIZE.xxl}
-                className={styles.mapViewIcon}
+const MapPlaceholder: React.FC<MapPlaceholderProps> = ({
+    partners,
+    location,
+    selectedPartnerId,
+    onSelectPartner,
+}) => {
+    const mapElement = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const element = mapElement.current;
+        if (!element || element.clientWidth === 0 || element.clientHeight === 0) return;
+
+        const map = L.map(element, { scrollWheelZoom: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+        }).addTo(map);
+
+        const locatedPartners = partners.filter(partnerHasCoordinates);
+        const markerById = new Map<string, L.CircleMarker>();
+
+        for (const partner of locatedPartners) {
+            const marker = L.circleMarker([partner.latitude, partner.longitude], {
+                radius: partner.id === selectedPartnerId ? 10 : 7,
+                color: 'var(--accent, #0b7264)',
+                fillColor: 'var(--accent, #0b7264)',
+                fillOpacity: 0.9,
+                weight: partner.id === selectedPartnerId ? 4 : 2,
+            }).addTo(map);
+            marker.on('click', () => onSelectPartner(partner.id));
+
+            const popup = document.createElement('div');
+            const name = document.createElement('strong');
+            name.textContent = partner.name;
+            const address = document.createElement('p');
+            address.textContent = [
+                partner.address.line1,
+                partner.address.line2,
+                partner.address.city,
+            ]
+                .filter(Boolean)
+                .join(', ');
+            const link = document.createElement('a');
+            link.href = ROUTES.laundry(partner.id);
+            link.textContent = 'View laundry';
+            popup.append(name, address, link);
+            marker.bindPopup(popup);
+
+            const label = document.createElement('span');
+            label.textContent = partner.name;
+            marker.bindTooltip(label);
+            markerById.set(partner.id, marker);
+        }
+
+        const selected = locatedPartners.find(({ id }) => id === selectedPartnerId);
+        if (selected) {
+            map.setView([selected.latitude, selected.longitude], 14);
+            markerById.get(selected.id)?.openPopup();
+        } else if (locatedPartners.length > 0) {
+            map.fitBounds(
+                L.latLngBounds(
+                    locatedPartners.map(
+                        ({ latitude, longitude }) => [latitude, longitude] as L.LatLngTuple
+                    )
+                ),
+                { padding: [24, 24], maxZoom: 13 }
+            );
+        } else {
+            map.setView(location ? [location.latitude, location.longitude] : DEFAULT_CENTER, 12);
+        }
+
+        return () => {
+            map.remove();
+        };
+    }, [location, onSelectPartner, partners, selectedPartnerId]);
+
+    const hasLocatedPartners = partners.some(partnerHasCoordinates);
+
+    return (
+        <aside
+            className={styles.mapView}
+            aria-label={LISTING_COPY.mapTitle}
+        >
+            <div
+                className={styles.mapCanvas}
+                ref={mapElement}
+                aria-label={LISTING_COPY.mapSubtitle}
             />
-            <p className={styles.mapViewTitle}>{LISTING_COPY.mapTitle}</p>
-            <p className={styles.mapViewSubtitle}>{LISTING_COPY.mapSubtitle}</p>
-        </div>
-    </aside>
-);
+            {!hasLocatedPartners && (
+                <p className={styles.mapEmpty}>{LISTING_COPY.mapNoCoordinates}</p>
+            )}
+        </aside>
+    );
+};
 
 export default MapPlaceholder;

@@ -12,8 +12,10 @@ import {
     PARTNER_PORTAL_COPY,
     type PartnerOrderFilter,
 } from '../../config/partnerOrdersConfig';
+import { useAsync } from '../../hooks/useAsync';
 import { usePartnerOrders } from '../../hooks/usePartnerOrders';
 import type { PartnerOrderSummary } from '../../models/partnerOrderModels';
+import { getPartnerRevenueSummary } from '../../services/revenueServices';
 import { formatEventTime, formatSlotRange, formatTimestampDate } from '../../utils/datesUtils';
 import StatusBadge from '../bookings/StatusBadge';
 import PartnerAccessRequired from './PartnerAccessRequired';
@@ -119,6 +121,9 @@ const EmptyQueue = () => (
 const PartnerOrdersPage: React.FC = () => {
     const [filter, setFilter] = useState<PartnerOrderFilter>('all');
     const orders = usePartnerOrders(filter);
+    const revenue = useAsync((signal) => getPartnerRevenueSummary(signal), []);
+    const partnerRevenueTotal =
+        revenue.data?.reduce((total, row) => total + row.partnerRevenue.amount, 0) ?? 0;
 
     return (
         <div className={styles.portalPage}>
@@ -203,6 +208,57 @@ const PartnerOrdersPage: React.FC = () => {
                                         <span>{label}</span>
                                     </div>
                                 ))}
+                            </section>
+                        )}
+
+                        {revenue.error && (
+                            <p
+                                className={styles.revenueError}
+                                role="alert"
+                            >
+                                Could not load demo payment revenue: {revenue.error.message}
+                            </p>
+                        )}
+                        {revenue.data && (
+                            <section
+                                className={styles.revenueSummary}
+                                aria-label="Simulated payment revenue"
+                            >
+                                <header>
+                                    <div>
+                                        <h2>Simulated payment revenue</h2>
+                                        <p>
+                                            Demo payments only. No real money is collected or
+                                            transferred.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <strong>
+                                            <Money
+                                                value={{
+                                                    amount: partnerRevenueTotal,
+                                                    currency: 'GHS',
+                                                }}
+                                            />
+                                        </strong>
+                                        <span>Your revenue after the 5% platform commission</span>
+                                    </div>
+                                </header>
+                                <ul>
+                                    {revenue.data.map((row) => (
+                                        <li key={row.partnerId}>
+                                            <strong>{row.partnerName}</strong>
+                                            <span>{row.demoOrderCount} demo payments</span>
+                                            <span>
+                                                Your revenue: <Money value={row.partnerRevenue} />
+                                            </span>
+                                            <span>
+                                                Platform fee:{' '}
+                                                <Money value={row.platformCommission} />
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
                             </section>
                         )}
 

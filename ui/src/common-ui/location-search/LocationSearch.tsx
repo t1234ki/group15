@@ -1,5 +1,8 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PIN_SEARCH } from '../../config/cycleConfig';
+import { LISTING_COPY } from '../../config/listingConfig';
+import { ROUTES } from '../../config/navigationConfig';
 import { useLocationSearch } from '../../hooks/useLocationSearch';
 import Icon from '../icons/Icon';
 import styles from './locationSearch.module.scss';
@@ -17,9 +20,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ className }) => {
     const { error, isLocating, locate } = useLocationSearch();
 
     return (
-        <div
-            className={[styles.search, className].filter(Boolean).join(' ')}
-        >
+        <div className={[styles.search, className].filter(Boolean).join(' ')}>
             <button
                 className={styles.searchSubmit}
                 type="button"
@@ -37,6 +38,12 @@ const LocationSearch: React.FC<LocationSearchProps> = ({ className }) => {
                     {error}
                 </span>
             )}
+            <Link
+                className={styles.searchBrowseAll}
+                to={ROUTES.laundries}
+            >
+                {LISTING_COPY.browseAll}
+            </Link>
         </div>
     );
 };

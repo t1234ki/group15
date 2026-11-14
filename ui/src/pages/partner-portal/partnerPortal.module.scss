@@ -90,6 +90,74 @@
         padding: 1rem;
     }
 
+    .revenueSummary {
+        margin: 0 0 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid t.$color-border;
+        border-radius: t.$radius-md;
+        background: t.$color-surface;
+
+        header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid t.$color-border;
+
+            h2 {
+                margin: 0 0 0.375rem;
+                font-size: t.$font-size-h3;
+            }
+
+            p {
+                margin: 0;
+                color: t.$color-text-muted;
+            }
+
+            > div:last-child {
+                display: grid;
+                gap: 0.25rem;
+                text-align: right;
+            }
+
+            > div:last-child strong {
+                font-size: t.$font-size-h3;
+            }
+
+            > div:last-child span {
+                color: t.$color-text-muted;
+                font-size: t.$font-size-sm;
+            }
+        }
+
+        ul {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        li {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+            align-items: center;
+            gap: 0.5rem 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid t.$color-border;
+        }
+
+        li:last-child {
+            border-bottom: 0;
+        }
+    }
+
+    .revenueError {
+        margin: 0 0 1rem;
+        color: t.$color-danger;
+    }
+
     strong,
     span {
         display: block;

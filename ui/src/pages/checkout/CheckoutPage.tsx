@@ -6,7 +6,7 @@ import Icon from '../../common-ui/icons/Icon';
 import Money from '../../common-ui/money/Money';
 import OrderTotals from '../../common-ui/order-totals/OrderTotals';
 import { API_COPY } from '../../config/apiConfig';
-import { CHECKOUT_COPY } from '../../config/bookingConfig';
+import { CHECKOUT_COPY, PAYMENT_METHOD_OPTIONS } from '../../config/bookingConfig';
 import { ICON_SIZE } from '../../config/brandConfig';
 import { ROUTES } from '../../config/navigationConfig';
 import { SCHEDULE_ANCHOR_ID, useCheckoutForm } from '../../hooks/useCheckoutForm';
@@ -30,6 +30,7 @@ const CheckoutPage: React.FC = () => {
         draftAddress,
         pickup,
         delivery,
+        paymentMethod,
         errors,
         isSubmitting,
         isLocating,
@@ -41,6 +42,7 @@ const CheckoutPage: React.FC = () => {
         locate,
         setPickup,
         setDelivery,
+        setPaymentMethod,
         confirm,
     } = useCheckoutForm();
 
@@ -121,8 +123,8 @@ const CheckoutPage: React.FC = () => {
                         draft={draftAddress}
                         needsLocation={Boolean(
                             selectedSavedAddress &&
-                                (selectedSavedAddress.latitude === null ||
-                                    selectedSavedAddress.longitude === null)
+                            (selectedSavedAddress.latitude === null ||
+                                selectedSavedAddress.longitude === null)
                         )}
                         errors={errors}
                         onSelect={selectAddress}
@@ -197,12 +199,40 @@ const CheckoutPage: React.FC = () => {
                     </div>
                 </section>
 
+                <section className={styles.checkoutSection}>
+                    <h2 className={styles.checkoutHeading}>{CHECKOUT_COPY.paymentHeading}</h2>
+                    <p className={styles.checkoutHint}>{CHECKOUT_COPY.paymentSubtitle}</p>
+                    <fieldset className={styles.paymentOptions}>
+                        <legend className="visually-hidden">{CHECKOUT_COPY.paymentHeading}</legend>
+                        {PAYMENT_METHOD_OPTIONS.map((option) => (
+                            <label
+                                className={styles.paymentOption}
+                                key={option.value}
+                            >
+                                <input
+                                    type="radio"
+                                    name="payment-method"
+                                    value={option.value}
+                                    checked={paymentMethod === option.value}
+                                    onChange={() => setPaymentMethod(option.value)}
+                                />
+                                <span>
+                                    <strong>{option.label}</strong>
+                                    <small>{option.detail}</small>
+                                </span>
+                            </label>
+                        ))}
+                    </fieldset>
+                </section>
+
                 <p className={styles.checkoutNote}>
                     <Icon
                         name="check-circle"
                         size={ICON_SIZE.sm}
                     />
-                    {CHECKOUT_COPY.paymentNote}
+                    {paymentMethod === 'cash_on_pickup'
+                        ? CHECKOUT_COPY.paymentNote
+                        : CHECKOUT_COPY.demoPaymentNote}
                 </p>
 
                 <button

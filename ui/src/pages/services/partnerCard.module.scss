@@ -52,6 +52,25 @@
         padding: 1.5rem;
     }
 
+    &MapButton {
+        margin-top: 0.75rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: t.$color-primary;
+        font: inherit;
+        font-size: t.$font-size-md;
+        font-weight: t.$font-weight-semibold;
+        text-decoration: underline;
+        cursor: pointer;
+
+        &:disabled {
+            color: t.$color-text-muted;
+            text-decoration: none;
+            cursor: not-allowed;
+        }
+    }
+
     &Footer {
         display: flex;
         align-items: center;

@@ -51,7 +51,8 @@ export const LISTING_COPY = {
     sortLabel: 'Sort by',
     sortPrefix: 'Sort:',
     empty: 'No partners match those filters. Try clearing one to see more results.',
-    emptyForLocation: 'No approved laundry businesses are listed within 25 km of your location yet.',
+    emptyForLocation:
+        'No approved laundry businesses are listed within 25 km of your location yet.',
     locationPrompt: 'Use your location to find nearby laundry businesses.',
     titleNearLocation: 'laundry businesses near you',
     titleMarketplace: 'laundry businesses on the marketplace',
@@ -68,4 +69,12 @@ export const LISTING_COPY = {
     showMore: 'Show more',
     showingMore: 'Loading more',
     showMoreFailed: "We couldn't load any more just now.",
+    nearbyTitle: 'Nearby laundries',
+    allBusinessesTitle: 'All laundries',
+    allBusinessesSubtitle:
+        'Browse every listed laundry, regardless of distance or selected filters.',
+    showOnMap: 'Show on map',
+    mapLocationUnavailable: 'Location unavailable',
+    mapNoCoordinates: 'No laundry locations are available to show on the map yet.',
+    browseAll: 'Browse all laundries',
 } as const;

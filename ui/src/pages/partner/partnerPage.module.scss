@@ -44,6 +44,39 @@
         margin-top: 2.5rem;
     }
 
+    &ServiceChoices {
+        display: grid;
+        gap: 0.75rem;
+        margin: 2rem 0 0;
+        padding: 1.25rem;
+        border: 1px solid t.$color-border;
+        border-radius: t.$radius-md;
+
+        legend {
+            padding: 0 0.4rem;
+            font-size: t.$font-size-h4;
+            font-weight: t.$font-weight-bold;
+        }
+
+        > p {
+            margin: 0;
+            color: t.$color-text-muted;
+        }
+    }
+
+    &ServiceChoicesList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+
+        label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: t.$font-weight-semibold;
+        }
+    }
+
     &CategoryName {
         margin: 0 0 1rem;
         font-size: t.$font-size-h4;

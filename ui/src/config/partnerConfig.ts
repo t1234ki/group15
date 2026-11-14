@@ -4,6 +4,9 @@ export const PARTNER_COPY = {
     notFoundBody: 'It may have closed or stopped taking orders. Here are the others near you.',
     notFoundAction: 'Browse laundries',
     emptyCatalogue: 'This laundry has not published a price list yet.',
+    chooseServices: 'Choose services',
+    chooseServicesHint: 'Select the services you need before choosing individual items.',
+    chooseServicePrompt: 'Choose at least one service to see its items.',
     closedTitle: 'This laundry is closed right now',
     closedBody:
         'It is not taking orders at the moment. Its price list is here when it ' +

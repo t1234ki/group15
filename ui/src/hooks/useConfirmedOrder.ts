@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { OrderIdentifiers } from '../utils/ordersUtils';
+import { isPaymentMethod } from '../models/paymentModels';
 
 /**
  * The order's two identifiers, handed over by checkout. The cart is emptied here
@@ -14,7 +15,7 @@ import { OrderIdentifiers } from '../utils/ordersUtils';
 export const useConfirmedOrder = () => {
     const { state } = useLocation();
     const { clear } = useCart();
-    const confirmed = state as Partial<OrderIdentifiers> | null;
+    const confirmed = state as (Partial<OrderIdentifiers> & { paymentMethod?: unknown }) | null;
     const orderId = confirmed?.orderId;
 
     useEffect(() => {
@@ -25,5 +26,11 @@ export const useConfirmedOrder = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orderId]);
 
-    return { orderId, orderReference: confirmed?.orderReference };
+    return {
+        orderId,
+        orderReference: confirmed?.orderReference,
+        paymentMethod: isPaymentMethod(confirmed?.paymentMethod)
+            ? confirmed.paymentMethod
+            : 'cash_on_pickup',
+    };
 };

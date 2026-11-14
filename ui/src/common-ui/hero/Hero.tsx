@@ -1,4 +1,7 @@
+import { Link } from 'react-router-dom';
 import { HERO } from '../../config/homeConfig';
+import { LISTING_COPY } from '../../config/listingConfig';
+import { ROUTES } from '../../config/navigationConfig';
 import { useLocationSearch } from '../../hooks/useLocationSearch';
 import Icon from '../icons/Icon';
 import styles from './hero.module.scss';
@@ -25,9 +28,7 @@ const Hero: React.FC = () => {
 
                     <p className={styles.heroSubtitle}>{HERO.subtitle}</p>
 
-                    <div
-                        className={styles.heroSearch}
-                    >
+                    <div className={styles.heroSearch}>
                         <div className={styles.heroField}>
                             <Icon
                                 name="pin"
@@ -52,6 +53,12 @@ const Hero: React.FC = () => {
                                 {error}
                             </span>
                         )}
+                        <Link
+                            className={styles.heroSearchBrowseAll}
+                            to={ROUTES.laundries}
+                        >
+                            {LISTING_COPY.browseAll}
+                        </Link>
                     </div>
 
                     <ul className={styles.heroStats}>

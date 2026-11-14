@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Address, EMPTY_SLOT, SlotSelection, emptyAddress } from '../models/bookingModels';
+import type { PaymentMethod } from '../models/paymentModels';
 import { analytics } from '../services/analyticsServices';
 import { ApiError } from '../services/apiClient';
 import { createAddress } from '../services/customerServices';
@@ -18,10 +19,10 @@ import { useCart } from '../context/CartContext';
 import { addressFieldId, isValidPhone } from '../utils/addressUtils';
 import { isAfter } from '../utils/datesUtils';
 import { focusField } from '../utils/formUtils';
+import { getCurrentLocation } from '../utils/locationUtils';
 import { createOrderIdentifiers } from '../utils/ordersUtils';
 import { NEW_ADDRESS_ID } from '../pages/checkout/AddressPicker';
 import { useAsync } from './useAsync';
-import { getCurrentLocation } from '../utils/locationUtils';
 
 export type CheckoutField = keyof typeof VALIDATION_COPY;
 
@@ -83,6 +84,7 @@ export const useCheckoutForm = () => {
     const [draftAddress, setDraftAddress] = useState<Address>(() => emptyAddress());
     const [pickup, setPickupSlot] = useState<SlotSelection>(EMPTY_SLOT);
     const [delivery, setDeliverySlot] = useState<SlotSelection>(EMPTY_SLOT);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_pickup');
     const [errors, setErrors] = useState<Partial<Record<CheckoutField, string>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
@@ -151,6 +153,7 @@ export const useCheckoutForm = () => {
         address,
         pickup,
         delivery,
+        paymentMethod,
         errors,
         isSubmitting,
         isLocating,
@@ -184,7 +187,9 @@ export const useCheckoutForm = () => {
                 clearError('location');
             } catch (error) {
                 setSubmitError(
-                    error instanceof Error ? error.message : 'Your location could not be determined.'
+                    error instanceof Error
+                        ? error.message
+                        : 'Your location could not be determined.'
                 );
             } finally {
                 setIsLocating(false);
@@ -210,6 +215,7 @@ export const useCheckoutForm = () => {
             clearError('delivery');
             clearError('deliveryBeforePickup');
         },
+        setPaymentMethod,
         confirm: async () => {
             const problems = findProblems();
             setSubmitError(null);
@@ -232,7 +238,7 @@ export const useCheckoutForm = () => {
                 });
                 navigate(ROUTES.orderConfirmed, {
                     replace: true,
-                    state: createOrderIdentifiers(),
+                    state: { ...createOrderIdentifiers(), paymentMethod },
                 });
                 return;
             }
@@ -262,7 +268,7 @@ export const useCheckoutForm = () => {
                         addressId,
                         pickupSlotId: pickup.slotId,
                         deliverySlotId: delivery.slotId,
-                        paymentMethod: 'cash_on_pickup',
+                        paymentMethod,
                     },
                     idempotencyKey.current
                 );
@@ -273,7 +279,11 @@ export const useCheckoutForm = () => {
                 });
                 navigate(ROUTES.orderConfirmed, {
                     replace: true,
-                    state: { orderId: order.id, orderReference: order.reference },
+                    state: {
+                        orderId: order.id,
+                        orderReference: order.reference,
+                        paymentMethod,
+                    },
                 });
             } catch (error) {
                 setSubmitError(

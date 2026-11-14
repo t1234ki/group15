@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import AsyncBoundary from '../../common-ui/async-boundary/AsyncBoundary';
 import BackLink from '../../common-ui/back-link/BackLink';
 import Icon from '../../common-ui/icons/Icon';
@@ -20,6 +20,7 @@ import styles from './servicesPage.module.scss';
 const ServicesPage: React.FC = () => {
     const {
         hasLocation,
+        location,
         serviceName,
         clearService,
         state,
@@ -35,6 +36,16 @@ const ServicesPage: React.FC = () => {
         activeCount,
         clearTags,
     } = usePartnerListing();
+    const showAllBusinesses = hasLocation || Boolean(serviceName) || activeCount > 0;
+    const allBusinesses = usePartnerListing({
+        allBusinesses: true,
+        enabled: showAllBusinesses,
+    });
+    const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+    const selectPartner = useCallback((partnerId: string) => {
+        setSelectedPartnerId(partnerId);
+    }, []);
+    const mapPartners = showAllBusinesses ? allBusinesses.partners : partners;
 
     return (
         <div className={styles.listing}>
@@ -123,56 +134,115 @@ const ServicesPage: React.FC = () => {
                 </div>
 
                 <div className={styles.listingLayout}>
-                    <AsyncBoundary
-                        state={state}
-                        label={LISTING_COPY.loading}
-                        isEmpty={() => partners.length === 0}
-                        empty={
-                            <p className={styles.listingEmpty}>
-                                {hasLocation && activeCount === 0 && !serviceName
-                                    ? LISTING_COPY.emptyForLocation
-                                    : LISTING_COPY.empty}
-                            </p>
-                        }
-                    >
-                        {() => (
-                            <div>
+                    <section className={styles.resultSection}>
+                        {hasLocation && (
+                            <h2 className={styles.resultHeading}>{LISTING_COPY.nearbyTitle}</h2>
+                        )}
+                        <AsyncBoundary
+                            state={state}
+                            label={LISTING_COPY.loading}
+                            isEmpty={() => partners.length === 0}
+                            empty={
+                                <p className={styles.listingEmpty}>
+                                    {hasLocation && activeCount === 0 && !serviceName
+                                        ? LISTING_COPY.emptyForLocation
+                                        : LISTING_COPY.empty}
+                                </p>
+                            }
+                        >
+                            {() => (
                                 <ul className={styles.listingResults}>
                                     {partners.map((partner) => (
                                         <li key={partner.id}>
-                                            <PartnerCard partner={partner} />
+                                            <PartnerCard
+                                                partner={partner}
+                                                onShowOnMap={selectPartner}
+                                            />
                                         </li>
                                     ))}
                                 </ul>
+                            )}
+                        </AsyncBoundary>
 
-                                {hasMore && (
-                                    <div className={styles.listingMore}>
-                                        {moreError && (
-                                            <p
-                                                className={styles.listingMoreError}
-                                                role="alert"
-                                            >
-                                                {moreError}
-                                            </p>
-                                        )}
-                                        <button
-                                            type="button"
-                                            className="button button--secondary"
-                                            onClick={loadMore}
-                                            disabled={isLoadingMore}
-                                        >
-                                            {isLoadingMore
-                                                ? LISTING_COPY.showingMore
-                                                : LISTING_COPY.showMore}
-                                        </button>
-                                    </div>
+                        {hasMore && (
+                            <div className={styles.listingMore}>
+                                {moreError && (
+                                    <p
+                                        className={styles.listingMoreError}
+                                        role="alert"
+                                    >
+                                        {moreError}
+                                    </p>
                                 )}
+                                <button
+                                    type="button"
+                                    className="button button--secondary"
+                                    onClick={loadMore}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore
+                                        ? LISTING_COPY.showingMore
+                                        : LISTING_COPY.showMore}
+                                </button>
                             </div>
                         )}
-                    </AsyncBoundary>
+                    </section>
 
-                    <MapPlaceholder pinCount={partners.length} />
+                    <MapPlaceholder
+                        partners={mapPartners}
+                        location={location}
+                        selectedPartnerId={selectedPartnerId}
+                        onSelectPartner={selectPartner}
+                    />
                 </div>
+
+                {showAllBusinesses && (
+                    <section className={styles.allBusinesses}>
+                        <h2>{LISTING_COPY.allBusinessesTitle}</h2>
+                        <p>{LISTING_COPY.allBusinessesSubtitle}</p>
+                        <AsyncBoundary
+                            state={allBusinesses.state}
+                            label={LISTING_COPY.loading}
+                            isEmpty={() => allBusinesses.partners.length === 0}
+                            empty={<p className={styles.listingEmpty}>{LISTING_COPY.empty}</p>}
+                        >
+                            {() => (
+                                <ul className={styles.listingResults}>
+                                    {allBusinesses.partners.map((partner) => (
+                                        <li key={partner.id}>
+                                            <PartnerCard
+                                                partner={partner}
+                                                onShowOnMap={selectPartner}
+                                            />
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </AsyncBoundary>
+                        {allBusinesses.hasMore && (
+                            <div className={styles.listingMore}>
+                                {allBusinesses.moreError && (
+                                    <p
+                                        className={styles.listingMoreError}
+                                        role="alert"
+                                    >
+                                        {allBusinesses.moreError}
+                                    </p>
+                                )}
+                                <button
+                                    type="button"
+                                    className="button button--secondary"
+                                    onClick={allBusinesses.loadMore}
+                                    disabled={allBusinesses.isLoadingMore}
+                                >
+                                    {allBusinesses.isLoadingMore
+                                        ? LISTING_COPY.showingMore
+                                        : LISTING_COPY.showMore}
+                                </button>
+                            </div>
+                        )}
+                    </section>
+                )}
             </div>
         </div>
     );

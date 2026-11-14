@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Money from '../../common-ui/money/Money';
 import { useAuth } from '../../context/AuthContext';
 import {
     getOwnerApplications,
@@ -7,6 +8,7 @@ import {
     reviewOwnerApplication,
     type OwnerApplication,
 } from '../../services/ownerServices';
+import { getAdminRevenueSummary, type PartnerRevenue } from '../../services/revenueServices';
 import styles from './onboarding.module.scss';
 
 const AdminDashboard: React.FC = () => {
@@ -14,10 +16,12 @@ const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
     const [applications, setApplications] = useState<OwnerApplication[]>([]);
+    const [revenue, setRevenue] = useState<PartnerRevenue[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [busyId, setBusyId] = useState<string | null>(null);
     const [reasons, setReasons] = useState<Record<string, string>>({});
     const [error, setError] = useState<string | null>(null);
+    const [revenueError, setRevenueError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
@@ -37,7 +41,23 @@ const AdminDashboard: React.FC = () => {
         const authorized = await isLaundryAdmin();
         setIsAdmin(authorized);
         if (!authorized) return;
-        setApplications(await getOwnerApplications());
+        const [applicationsResult, revenueResult] = await Promise.allSettled([
+            getOwnerApplications(),
+            getAdminRevenueSummary(),
+        ]);
+        if (applicationsResult.status === 'rejected') throw applicationsResult.reason;
+        setApplications(applicationsResult.value);
+        if (revenueResult.status === 'rejected') {
+            setRevenue(null);
+            setRevenueError(
+                revenueResult.reason instanceof Error
+                    ? revenueResult.reason.message
+                    : 'Could not load simulated payment revenue.'
+            );
+        } else {
+            setRevenue(revenueResult.value);
+            setRevenueError(null);
+        }
     }, []);
 
     useEffect(() => {
@@ -117,6 +137,9 @@ const AdminDashboard: React.FC = () => {
             </main>
         );
 
+    const totalCommission =
+        revenue?.reduce((total, row) => total + row.platformCommission.amount, 0) ?? 0;
+
     return (
         <main className={styles.page}>
             <div className={styles.inner}>
@@ -132,6 +155,47 @@ const AdminDashboard: React.FC = () => {
                     >
                         {error}
                     </p>
+                )}
+                {revenueError && (
+                    <p
+                        className={styles.error}
+                        role="alert"
+                    >
+                        {revenueError}
+                    </p>
+                )}
+                {revenue && (
+                    <section
+                        className={styles.revenueSummary}
+                        aria-label="Simulated platform revenue"
+                    >
+                        <div className={styles.revenueHeader}>
+                            <div>
+                                <h2>Simulated payment revenue</h2>
+                                <p>
+                                    Demo payments only. No real money is collected or transferred.
+                                </p>
+                            </div>
+                            <strong>
+                                <Money value={{ amount: totalCommission, currency: 'GHS' }} />
+                            </strong>
+                            <span>Platform commission</span>
+                        </div>
+                        <ul className={styles.revenueList}>
+                            {revenue.map((row) => (
+                                <li key={row.partnerId}>
+                                    <strong>{row.partnerName}</strong>
+                                    <span>{row.demoOrderCount} demo payments</span>
+                                    <span>
+                                        Commission: <Money value={row.platformCommission} />
+                                    </span>
+                                    <span>
+                                        Gross: <Money value={row.gross} />
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
                 )}
                 {notice && (
                     <p

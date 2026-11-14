@@ -12,9 +12,10 @@ import styles from './partnerCard.module.scss';
 
 interface PartnerCardProps {
     partner: Partner;
+    onShowOnMap: (partnerId: string) => void;
 }
 
-const PartnerCard: React.FC<PartnerCardProps> = ({ partner }) => (
+const PartnerCard: React.FC<PartnerCardProps> = ({ partner, onShowOnMap }) => (
     <Card
         as="article"
         className={styles.partner}
@@ -47,6 +48,17 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner }) => (
                 partner={partner}
                 linkToPartner
             />
+
+            <button
+                className={styles.partnerMapButton}
+                type="button"
+                disabled={partner.latitude === null || partner.longitude === null}
+                onClick={() => onShowOnMap(partner.id)}
+            >
+                {partner.latitude === null || partner.longitude === null
+                    ? LISTING_COPY.mapLocationUnavailable
+                    : LISTING_COPY.showOnMap}
+            </button>
 
             <footer className={styles.partnerFooter}>
                 <p className={styles.partnerPrice}>

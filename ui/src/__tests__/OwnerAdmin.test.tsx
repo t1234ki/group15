@@ -9,6 +9,7 @@ import {
     submitOwnerApplication,
     type OwnerApplication,
 } from '../services/ownerServices';
+import { getAdminRevenueSummary } from '../services/revenueServices';
 import { getCurrentLocation } from '../utils/locationUtils';
 import AdminDashboard from '../pages/partner-portal/AdminDashboard';
 import OwnerDashboard from '../pages/partner-portal/OwnerDashboard';
@@ -19,6 +20,10 @@ vi.mock('../services/ownerServices', () => ({
     isLaundryAdmin: vi.fn(),
     reviewOwnerApplication: vi.fn(),
     submitOwnerApplication: vi.fn(),
+}));
+
+vi.mock('../services/revenueServices', () => ({
+    getAdminRevenueSummary: vi.fn(),
 }));
 
 vi.mock('../utils/locationUtils', () => ({
@@ -58,6 +63,7 @@ const renderInRouter = (page: ReactNode) => render(<MemoryRouter>{page}</MemoryR
 describe('owner onboarding and admin review', () => {
     beforeEach(() => {
         vi.resetAllMocks();
+        vi.mocked(getAdminRevenueSummary).mockResolvedValue([]);
     });
 
     it('submits a laundry owner application and shows the review status', async () => {

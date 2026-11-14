@@ -67,6 +67,40 @@
         padding: 1.5rem;
     }
 
+    &PaymentOptions {
+        display: grid;
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    &PaymentOption {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        border: 1px solid t.$color-border;
+        border-radius: t.$radius-sm;
+        background: t.$color-surface;
+        cursor: pointer;
+
+        input {
+            margin-top: 0.25rem;
+            accent-color: t.$color-primary;
+        }
+
+        span {
+            display: grid;
+            gap: 0.25rem;
+        }
+
+        small {
+            color: t.$color-text-muted;
+            font-size: t.$font-size-sm;
+        }
+    }
+
     &Lines {
         margin: 0 0 1.25rem;
         padding: 0 0 1.25rem;

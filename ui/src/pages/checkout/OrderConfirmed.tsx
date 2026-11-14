@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import Icon from '../../common-ui/icons/Icon';
-import { CONFIRMATION_COPY } from '../../config/bookingConfig';
+import { CHECKOUT_COPY, CONFIRMATION_COPY } from '../../config/bookingConfig';
 import { ICON_SIZE } from '../../config/brandConfig';
 import { ROUTES } from '../../config/navigationConfig';
 import { useConfirmedOrder } from '../../hooks/useConfirmedOrder';
 import styles from './checkout.module.scss';
 
 const OrderConfirmed: React.FC = () => {
-    const { orderId, orderReference } = useConfirmedOrder();
+    const { orderId, orderReference, paymentMethod } = useConfirmedOrder();
 
     // Reached without completing a booking (e.g. a direct link or refresh).
     if (!orderId) {
@@ -30,6 +30,9 @@ const OrderConfirmed: React.FC = () => {
             </span>
             <h1 className={styles.confirmedTitle}>{CONFIRMATION_COPY.title}</h1>
             <p className={styles.confirmedText}>{CONFIRMATION_COPY.body}</p>
+            {paymentMethod !== 'cash_on_pickup' && (
+                <p className={styles.checkoutNote}>{CHECKOUT_COPY.demoPaymentSuccess}</p>
+            )}
             <p className={styles.confirmedOrder}>
                 {CONFIRMATION_COPY.orderPrefix}
                 {orderReference}

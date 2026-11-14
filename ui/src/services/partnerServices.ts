@@ -132,6 +132,8 @@ const toPartner = (
         rating: asNumber(row.rating),
         reviewCount: row.review_count,
         address: { line1: row.line1, line2: row.line2, city: row.city },
+        latitude: asNumber(row.latitude),
+        longitude: asNumber(row.longitude),
         distanceMeters,
         tags: row.tags ?? [],
         services: row.services ?? [],

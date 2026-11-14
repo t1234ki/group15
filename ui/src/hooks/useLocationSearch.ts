@@ -26,42 +26,53 @@ export const useLocationSearch = () => {
         locate: () => {
             const geolocation = window.navigator.geolocation;
             if (!geolocation) {
-                setError('Location is not available in this browser. You can still browse all laundries.');
+                setError(
+                    'Location is not available in this browser. You can still browse all laundries.'
+                );
                 return;
             }
 
             const currentRequest = ++requestId.current;
             setIsLocating(true);
             setError(null);
-            geolocation.getCurrentPosition(
-                ({ coords }) => {
-                    if (currentRequest !== requestId.current) return;
-                    analytics.trackEvent(ANALYTICS_EVENTS.partnerSearch, {
-                        surface: pathname === ROUTES.journey ? 'journey' : 'homepage',
-                    });
-                    navigate(ROUTES.laundries, {
-                        state: {
-                            nearbyCoordinates: {
-                                latitude: coords.latitude,
-                                longitude: coords.longitude,
+            try {
+                geolocation.getCurrentPosition(
+                    ({ coords }) => {
+                        if (currentRequest !== requestId.current) return;
+                        analytics.trackEvent(ANALYTICS_EVENTS.partnerSearch, {
+                            surface: pathname === ROUTES.journey ? 'journey' : 'homepage',
+                        });
+                        navigate(ROUTES.laundries, {
+                            state: {
+                                nearbyCoordinates: {
+                                    latitude: coords.latitude,
+                                    longitude: coords.longitude,
+                                },
                             },
-                        },
-                    });
-                    setIsLocating(false);
-                },
-                (positionError) => {
-                    if (currentRequest !== requestId.current) return;
+                        });
+                        setIsLocating(false);
+                    },
+                    (positionError) => {
+                        if (currentRequest !== requestId.current) return;
+                        setError(
+                            positionError.code === positionError.PERMISSION_DENIED
+                                ? 'Location permission was denied. Allow location access in your browser and try again.'
+                                : positionError.code === positionError.TIMEOUT
+                                  ? 'Finding your location took too long. Please try again.'
+                                  : 'Your location could not be determined. Please try again.'
+                        );
+                        setIsLocating(false);
+                    },
+                    { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 }
+                );
+            } catch {
+                if (currentRequest === requestId.current) {
                     setError(
-                        positionError.code === positionError.PERMISSION_DENIED
-                            ? 'Location permission was denied. Allow location access in your browser and try again.'
-                            : positionError.code === positionError.TIMEOUT
-                              ? 'Finding your location took too long. Please try again.'
-                              : 'Your location could not be determined. Please try again.'
+                        'Location could not be requested. You can still browse all laundries.'
                     );
                     setIsLocating(false);
-                },
-                { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 }
-            );
+                }
+            }
         },
         cancel: () => {
             requestId.current += 1;

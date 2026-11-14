@@ -14,6 +14,14 @@
     font-size: t.$font-size-sm;
 }
 
+.searchBrowseAll {
+    display: inline-flex;
+    align-items: center;
+    color: t.$color-primary;
+    font-size: t.$font-size-md;
+    font-weight: t.$font-weight-semibold;
+}
+
 .searchSubmit {
     display: inline-flex;
     gap: 0.625rem;

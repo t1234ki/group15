@@ -9,6 +9,7 @@ import {
     getPartnerOrder,
     getPartnerOrders,
 } from '../services/partnerOrderServices';
+import { getPartnerRevenueSummary } from '../services/revenueServices';
 import { authenticateTestUser, renderApp } from '../__mocks__/renderWithProviders';
 
 vi.mock('../services/partnerOrderServices', () => ({
@@ -16,6 +17,10 @@ vi.mock('../services/partnerOrderServices', () => ({
     getPartnerOperationsSummary: vi.fn(),
     getPartnerOrder: vi.fn(),
     getPartnerOrders: vi.fn(),
+}));
+
+vi.mock('../services/revenueServices', () => ({
+    getPartnerRevenueSummary: vi.fn(),
 }));
 
 const money = (amount: number) => ({ amount, currency: 'GHS' as const });
@@ -114,6 +119,7 @@ const installPartnerApi = ({ failPagination = false, failTransition = false } = 
         completedToday: 5,
         generatedAt: '2026-09-09T06:00:00.000Z',
     });
+    vi.mocked(getPartnerRevenueSummary).mockResolvedValue([]);
     vi.mocked(getPartnerOrder).mockImplementation(async () => detail);
     vi.mocked(advancePartnerOrder).mockImplementation(async (id, type) => {
         if (failTransition || type !== 'confirmed') {
@@ -265,8 +271,6 @@ describe('laundry-partner order portal', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent(
             'That order cannot move to the requested stage.'
         );
-        expect(
-            vi.mocked(getPartnerOrder).mock.calls
-        ).toHaveLength(2);
+        expect(vi.mocked(getPartnerOrder).mock.calls).toHaveLength(2);
     });
 });

@@ -1,15 +1,16 @@
+import type { PaymentMethod } from '../models/paymentModels';
 import type { Order, OrderEvent, OrderStatus } from '../data/orders';
 import { ApiError } from './apiClient';
 import { getSupabaseClient } from './supabaseClient';
-import { getSupabaseOrder } from './supabaseOrderQueries';
 import { throwSupabaseError } from './supabaseErrors';
+import { getSupabaseOrder } from './supabaseOrderQueries';
 
 export interface CreateOrderInput {
     cartId: string;
     addressId: string;
     pickupSlotId: string;
     deliverySlotId: string;
-    paymentMethod: 'cash_on_pickup';
+    paymentMethod: PaymentMethod;
 }
 
 interface PlacementResult {
