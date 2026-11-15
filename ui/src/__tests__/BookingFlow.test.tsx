@@ -110,6 +110,9 @@ describe('order flow', () => {
         await user.click(screen.getByRole('button', { name: 'View Cart' }));
 
         expect(await screen.findByRole('heading', { name: 'Your Cart' })).toBeInTheDocument();
+        expect(
+            screen.getByText(/choose cash on pickup, demo card, or demo mobile money/i)
+        ).toBeInTheDocument();
         // The line names the service it was added from, which the client can no
         // longer look up: the catalogue that priced it lives on the server.
         expect(screen.getByText('Wash & Fold')).toBeInTheDocument();
@@ -137,6 +140,9 @@ describe('order flow', () => {
         expect(screen.getByRole('radio', { name: /demo mobile money/i })).toBeInTheDocument();
         await user.click(screen.getByRole('radio', { name: /demo card payment/i }));
 
+        expect(
+            screen.getByRole('button', { name: /simulate payment & confirm booking/i })
+        ).toBeEnabled();
         expect(confirm()).toBeEnabled();
         await user.click(confirm());
 

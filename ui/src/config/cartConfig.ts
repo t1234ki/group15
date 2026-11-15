@@ -14,6 +14,7 @@ export const CART_COPY = {
     deliveryFree: 'Free',
     taxes: 'Taxes',
     total: 'Total',
+    paymentNextStep: 'Next: choose cash on pickup, demo card, or demo mobile money at checkout.',
     place: 'Place Order',
     clear: 'Clear Cart',
     viewCart: 'View Cart',

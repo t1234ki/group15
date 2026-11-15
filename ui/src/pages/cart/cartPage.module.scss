@@ -69,6 +69,13 @@
         padding: 1rem;
     }
 
+    &PaymentHint {
+        margin: 1rem 0 0.75rem;
+        color: t.$color-text-muted;
+        font-size: t.$font-size-lg;
+        text-align: center;
+    }
+
     &Clear {
         display: block;
         width: 100%;

@@ -166,6 +166,7 @@ const CartPage: React.FC = () => {
                     />
 
                     {syncError && <p role="alert">{syncError}</p>}
+                    <p className={styles.cartPaymentHint}>{CART_COPY.paymentNextStep}</p>
 
                     <button
                         className={`button button--primary ${styles.cartPlace}`}

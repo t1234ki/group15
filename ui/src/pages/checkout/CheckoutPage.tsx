@@ -248,7 +248,11 @@ const CheckoutPage: React.FC = () => {
                     disabled={live.isLoading || Boolean(live.error) || isSubmitting}
                     onClick={() => void confirm()}
                 >
-                    {isSubmitting ? CHECKOUT_COPY.confirming : CHECKOUT_COPY.confirm}
+                    {isSubmitting
+                        ? CHECKOUT_COPY.confirming
+                        : paymentMethod === 'cash_on_pickup'
+                          ? CHECKOUT_COPY.confirm
+                          : CHECKOUT_COPY.confirmDemoPayment}
                     <Icon
                         name="arrow-right"
                         size={ICON_SIZE.md}

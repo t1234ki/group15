@@ -74,6 +74,7 @@ export const CHECKOUT_COPY = {
     selectDate: 'Select Date',
     selectSlot: 'Select Time Slot',
     confirm: 'Confirm Booking',
+    confirmDemoPayment: 'Simulate Payment & Confirm Booking',
     confirming: 'Placing order...',
 } as const;
 
