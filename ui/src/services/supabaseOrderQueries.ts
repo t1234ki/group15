@@ -1,6 +1,7 @@
-import type { Order, OrderEventType, OrderStatus } from '../data/orders';
 import type { PriceUnit } from '../models/catalogModels';
 import type { Money } from '../models/moneyModels';
+import { isPaymentMethod, type PaymentMethod } from '../models/paymentModels';
+import type { Order, OrderEventType, OrderStatus } from '../data/orders';
 import { ApiError } from './apiClient';
 import { getSupabaseClient } from './supabaseClient';
 import { throwSupabaseError } from './supabaseErrors';
@@ -76,7 +77,10 @@ const readSlot = async (id: string, signal?: AbortSignal): Promise<SlotRow> => {
     return data;
 };
 
-const readOrder = async (id: string, signal?: AbortSignal): Promise<Order | null> => {
+const readOrder = async (
+    id: string,
+    signal?: AbortSignal
+): Promise<(Order & { paymentMethod: PaymentMethod }) | null> => {
     const client = await getSupabaseClient();
     let orderRequest = client
         .from('orders')
@@ -88,6 +92,8 @@ const readOrder = async (id: string, signal?: AbortSignal): Promise<Order | null
     const { data: row, error: orderError } = await orderRequest.returns<OrderRow[]>().maybeSingle();
     if (orderError) throwSupabaseError(orderError);
     if (!row) return null;
+    if (!isPaymentMethod(row.payment_method))
+        throw new ApiError('INTERNAL_ERROR', 'The order has an unsupported payment method.');
 
     const [
         { data: partner, error: partnerError },
@@ -189,6 +195,7 @@ const readOrder = async (id: string, signal?: AbortSignal): Promise<Order | null
         id: row.id,
         reference: row.reference,
         status: row.status,
+        paymentMethod: row.payment_method,
         canCancel,
         canReschedule,
         placedAt: row.placed_at,
@@ -228,7 +235,10 @@ const readOrder = async (id: string, signal?: AbortSignal): Promise<Order | null
     };
 };
 
-export const getSupabaseOrder = async (id: string, signal?: AbortSignal): Promise<Order> => {
+export const getSupabaseOrder = async (
+    id: string,
+    signal?: AbortSignal
+): Promise<Order & { paymentMethod: PaymentMethod }> => {
     const order = await readOrder(id, signal);
     if (!order) throw new ApiError('NOT_FOUND', 'That order was not found.', 404);
     return order;

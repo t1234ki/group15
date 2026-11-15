@@ -246,9 +246,9 @@ describe('laundry-partner catalogue management', () => {
         const creator = within(category.getByText('New catalogue item').closest('form')!);
         await user.type(creator.getByLabelText('Item name'), 'Bedsheet');
         await user.type(creator.getByLabelText('Description (optional)'), 'Cleaned and folded.');
-        await user.type(creator.getByLabelText('Price (GH₵ per piece)'), '59.5');
+        await user.type(creator.getByLabelText('Price (GH₵ per dress / item)'), '59.5');
         expect(creator.getByLabelText('Item name')).toHaveValue('Bedsheet');
-        expect(creator.getByLabelText('Price (GH₵ per piece)')).toHaveValue(59.5);
+        expect(creator.getByLabelText('Price (GH₵ per dress / item)')).toHaveValue(59.5);
         await user.click(creator.getByRole('button', { name: 'Add an item' }));
 
         await waitFor(() =>
@@ -288,7 +288,7 @@ describe('laundry-partner catalogue management', () => {
         const description = item.getByLabelText('Description (optional)');
         await user.clear(description);
         await user.type(description, 'Pressed and folded.');
-        const price = item.getByLabelText('Price (GH₵ per piece)');
+        const price = item.getByLabelText('Price (GH₵ per dress / item)');
         await user.clear(price);
         await user.type(price, '22.5');
         await user.click(item.getByLabelText('Premium shirt Available to customers'));
@@ -323,7 +323,7 @@ describe('laundry-partner catalogue management', () => {
         expect(name).toHaveAccessibleDescription('Enter an item name.');
 
         await user.type(name, 'Shirt');
-        const price = item.getByLabelText('Price (GH₵ per piece)');
+        const price = item.getByLabelText('Price (GH₵ per dress / item)');
         await user.clear(price);
         await user.click(item.getByRole('button', { name: 'Save item' }));
         expect(await item.findByRole('alert')).toHaveTextContent('Enter a price from');

@@ -21,7 +21,7 @@ interface PlacementResult {
 export const createOrder = async (
     input: CreateOrderInput,
     idempotencyKey: string
-): Promise<Order> => {
+): Promise<Order & { paymentMethod: PaymentMethod }> => {
     if (!idempotencyKey) {
         throw new ApiError(
             'IDEMPOTENCY_KEY_REQUIRED',

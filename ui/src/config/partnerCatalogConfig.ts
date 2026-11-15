@@ -30,7 +30,7 @@ export const PARTNER_CATALOG_COPY = {
     saving: 'Saving…',
     itemName: 'Item name',
     description: 'Description (optional)',
-    price: 'Price (GH₵ per piece)',
+    price: 'Price (GH₵ per dress / item)',
     available: 'Available to customers',
     active: 'Available',
     inactive: 'Hidden',
@@ -39,7 +39,8 @@ export const PARTNER_CATALOG_COPY = {
     saveItem: 'Save item',
     createItem: 'Add an item',
     createItemTitle: 'New catalogue item',
-    createItemBody: 'Add a per-piece price in Ghana cedis. You can hide the item before publishing it.',
+    createItemBody:
+        'Name a garment such as Dress and set its price per piece in Ghana cedis. Customers see the price before they order.',
     saved: 'Saved.',
     loading: 'Loading laundry catalogue',
     emptyTitle: 'No catalogue yet',

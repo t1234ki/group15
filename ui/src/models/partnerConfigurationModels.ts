@@ -15,6 +15,7 @@ export interface PartnerLaundryConfiguration {
     id: string;
     name: string;
     about: string;
+    imageUrl: string | null;
     address: PartnerAddress;
     latitude: number | null;
     longitude: number | null;
@@ -30,5 +31,5 @@ export interface PartnerLaundryConfiguration {
 
 export type PartnerLaundryConfigurationInput = Omit<
     PartnerLaundryConfiguration,
-    'id' | 'currentlyOpen'
+    'id' | 'currentlyOpen' | 'imageUrl'
 >;

@@ -9,11 +9,12 @@ import type { OpeningHours } from '../models/partnerModels';
 import { ApiError } from '../services/apiClient';
 import {
     getPartnerLaundries,
+    updatePartnerListingImage,
     updatePartnerLaundry,
 } from '../services/partnerConfigurationServices';
 import { PARTNER_SETTINGS_COPY } from '../config/partnerSettingsConfig';
-import { useAsync } from './useAsync';
 import { getCurrentLocation } from '../utils/locationUtils';
+import { useAsync } from './useAsync';
 
 const toDraft = ({
     name,
@@ -57,6 +58,10 @@ export const usePartnerSettings = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<ApiError | null>(null);
     const [saveSucceeded, setSaveSucceeded] = useState(false);
+    const [imageSaving, setImageSaving] = useState(false);
+    const [imageError, setImageError] = useState<string | null>(null);
+    const [imageWarning, setImageWarning] = useState<string | null>(null);
+    const [imageSucceeded, setImageSucceeded] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -75,6 +80,9 @@ export const usePartnerSettings = () => {
         if (nextId === draftPartnerId) return;
         setDraft(selected ? toDraft(selected) : null);
         setDraftPartnerId(nextId);
+        setImageError(null);
+        setImageWarning(null);
+        setImageSucceeded(false);
         setSaveError(null);
         setSaveSucceeded(false);
         setLocationError(null);
@@ -223,6 +231,31 @@ export const usePartnerSettings = () => {
         }
     };
 
+    const saveListingImage = async (imageFile: File) => {
+        if (!effectiveId || !selected || imageSaving) return false;
+        setImageSaving(true);
+        setImageError(null);
+        setImageWarning(null);
+        setImageSucceeded(false);
+        try {
+            const result = await updatePartnerListingImage(effectiveId, imageFile);
+            setSavedById((current) => ({
+                ...current,
+                [effectiveId]: { ...selected, imageUrl: result.imageUrl },
+            }));
+            setImageWarning(result.cleanupWarning);
+            setImageSucceeded(true);
+            return true;
+        } catch (error) {
+            setImageError(
+                error instanceof Error ? error.message : PARTNER_SETTINGS_COPY.saveFallback
+            );
+            return false;
+        } finally {
+            setImageSaving(false);
+        }
+    };
+
     return {
         loadState,
         configurations,
@@ -232,6 +265,10 @@ export const usePartnerSettings = () => {
         isSaving,
         saveError,
         saveSucceeded,
+        imageSaving,
+        imageError,
+        imageWarning,
+        imageSucceeded,
         isLocating,
         locationError,
         selectLaundry,
@@ -247,5 +284,6 @@ export const usePartnerSettings = () => {
         updateHours,
         setDayClosed,
         save,
+        saveListingImage,
     };
 };

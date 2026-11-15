@@ -282,7 +282,7 @@ export const useCheckoutForm = () => {
                     state: {
                         orderId: order.id,
                         orderReference: order.reference,
-                        paymentMethod,
+                        paymentMethod: order.paymentMethod,
                     },
                 });
             } catch (error) {

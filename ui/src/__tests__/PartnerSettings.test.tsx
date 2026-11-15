@@ -7,6 +7,7 @@ const configuration = (): PartnerLaundryConfiguration => ({
     id: '1001',
     name: 'SparkleWash Express',
     about: 'Fast laundry and careful garment cleaning.',
+    imageUrl: null,
     address: {
         line1: '12 Lake Road',
         line2: 'HSR Layout',

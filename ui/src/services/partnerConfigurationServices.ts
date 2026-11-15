@@ -6,6 +6,11 @@ import { ApiError } from './apiClient';
 import { getSupabaseClient } from './supabaseClient';
 import { throwSupabaseError } from './supabaseErrors';
 
+const LISTING_IMAGE_BUCKET = 'laundry-listing-images';
+const MAX_LISTING_IMAGE_BYTES = 5 * 1024 * 1024;
+const isStoredListingImage = (value: string): boolean =>
+    /^[-0-9a-f]{36}\/owner-listings\/[a-f0-9-]+\.(jpg|png|webp)$/.test(value);
+
 interface ConfigurationRow {
     id: string;
     name: string;
@@ -19,6 +24,7 @@ interface ConfigurationRow {
     turnaround_hours: number;
     is_open: boolean;
     auto_schedule: boolean;
+    image_url: string | null;
 }
 
 interface HoursRow {
@@ -76,6 +82,11 @@ const readConfiguration = async (
         id: partner.id,
         name: partner.name,
         about: partner.about ?? '',
+        imageUrl:
+            partner.image_url && isStoredListingImage(partner.image_url)
+                ? client.storage.from(LISTING_IMAGE_BUCKET).getPublicUrl(partner.image_url).data
+                      .publicUrl
+                : partner.image_url,
         address: { line1: partner.line1, line2: partner.line2, city: partner.city },
         latitude: partner.latitude === null ? null : Number(partner.latitude),
         longitude: partner.longitude === null ? null : Number(partner.longitude),
@@ -102,7 +113,7 @@ const readConfiguration = async (
 };
 
 const partnerColumns =
-    'id,name,about,line1,line2,city,latitude,longitude,service_radius_km,turnaround_hours,is_open,auto_schedule';
+    'id,name,about,line1,line2,city,latitude,longitude,service_radius_km,turnaround_hours,is_open,auto_schedule,image_url';
 
 export const getPartnerLaundries = async (signal?: AbortSignal) => {
     const client = await getSupabaseClient();
@@ -166,4 +177,68 @@ export const updatePartnerLaundry = async (
     if (readError) throwSupabaseError(readError);
     if (!data) throw new ApiError('NOT_FOUND', 'That laundry was not found.', 404);
     return readConfiguration(data);
+};
+
+export const updatePartnerListingImage = async (
+    partnerId: string,
+    imageFile: File
+): Promise<{ imageUrl: string; cleanupWarning: string | null }> => {
+    const extension: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+    };
+    if (!(imageFile.type in extension)) throw new Error('Choose a JPEG, PNG, or WebP image.');
+    if (imageFile.size > MAX_LISTING_IMAGE_BYTES)
+        throw new Error('The laundry photo must be 5 MB or smaller.');
+
+    const client = await getSupabaseClient();
+    const { data: userData, error: userError } = await client.auth.getUser();
+    if (userError) throwSupabaseError(userError);
+    if (!userData.user) throw new ApiError('UNAUTHENTICATED', 'Please sign in to continue.', 401);
+
+    const imagePath = `${userData.user.id}/owner-listings/${crypto.randomUUID()}.${extension[imageFile.type]}`;
+    const { error: uploadError } = await client.storage
+        .from(LISTING_IMAGE_BUCKET)
+        .upload(imagePath, imageFile, {
+            cacheControl: '3600',
+            contentType: imageFile.type,
+            upsert: false,
+        });
+    if (uploadError) throwSupabaseError(uploadError);
+
+    let previousPath: string | null;
+    try {
+        const { data, error } = await client.rpc('update_partner_listing_image', {
+            target_partner_id: partnerId,
+            target_image_path: imagePath,
+        });
+        if (error) throwSupabaseError(error);
+        if (data !== null && typeof data !== 'string')
+            throw new ApiError('INTERNAL_ERROR', 'Supabase returned an invalid image update.');
+        previousPath = data;
+    } catch (error) {
+        const { error: cleanupError } = await client.storage
+            .from(LISTING_IMAGE_BUCKET)
+            .remove([imagePath]);
+        if (cleanupError) {
+            throw new Error(
+                `${error instanceof Error ? error.message : 'The laundry photo could not be saved.'} The uploaded photo could not be removed; please contact support.`
+            );
+        }
+        throw error;
+    }
+
+    let cleanupWarning: string | null = null;
+    if (previousPath && isStoredListingImage(previousPath)) {
+        const { error } = await client.storage.from(LISTING_IMAGE_BUCKET).remove([previousPath]);
+        if (error)
+            cleanupWarning =
+                'The new photo was saved, but the previous photo could not be removed.';
+    }
+
+    return {
+        imageUrl: client.storage.from(LISTING_IMAGE_BUCKET).getPublicUrl(imagePath).data.publicUrl,
+        cleanupWarning,
+    };
 };

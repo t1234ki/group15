@@ -302,7 +302,14 @@ const PartnerCatalogPage: React.FC = () => {
                                                             </div>
                                                         </div>
 
-                                                        <details className={styles.createItem}>
+                                                        <details
+                                                            className={styles.createItem}
+                                                            open={
+                                                                !category.items.some(
+                                                                    ({ isActive }) => isActive
+                                                                )
+                                                            }
+                                                        >
                                                             <summary>
                                                                 {PARTNER_CATALOG_COPY.createItem}
                                                             </summary>
@@ -436,7 +443,7 @@ const PartnerCatalogPage: React.FC = () => {
                                                                                     id={`${category.id}-new-item-price`}
                                                                                     type="number"
                                                                                     value={
-                                                                                        draft.priceRupees
+                                                                                        draft.priceCedis
                                                                                     }
                                                                                     required
                                                                                     min={0}
@@ -464,7 +471,7 @@ const PartnerCatalogPage: React.FC = () => {
                                                                                         catalog.updateNewItem(
                                                                                             category.id,
                                                                                             {
-                                                                                                priceRupees:
+                                                                                                priceCedis:
                                                                                                     event
                                                                                                         .target
                                                                                                         .value,
@@ -698,7 +705,7 @@ const PartnerCatalogPage: React.FC = () => {
                                                                                     id={`${item.id}-price`}
                                                                                     type="number"
                                                                                     value={
-                                                                                        draft.priceRupees
+                                                                                        draft.priceCedis
                                                                                     }
                                                                                     required
                                                                                     min={0}
@@ -726,7 +733,7 @@ const PartnerCatalogPage: React.FC = () => {
                                                                                         catalog.updateItem(
                                                                                             item.id,
                                                                                             {
-                                                                                                priceRupees:
+                                                                                                priceCedis:
                                                                                                     event
                                                                                                         .target
                                                                                                         .value,

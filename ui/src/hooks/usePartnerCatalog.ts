@@ -27,7 +27,7 @@ interface CategoryDraft {
 interface ItemDraft {
     name: string;
     description: string;
-    priceRupees: string;
+    priceCedis: string;
     isActive: boolean;
 }
 
@@ -39,7 +39,7 @@ interface NewCategoryDraft {
 const blankItemDraft = (): ItemDraft => ({
     name: '',
     description: '',
-    priceRupees: '',
+    priceCedis: '',
     isActive: true,
 });
 
@@ -52,7 +52,7 @@ const priceInput = (amount: number) =>
 const itemDraft = (item: PartnerManagedCatalogItem): ItemDraft => ({
     name: item.name,
     description: item.description ?? '',
-    priceRupees: priceInput(item.price.amount),
+    priceCedis: priceInput(item.price.amount),
     isActive: item.isActive,
 });
 
@@ -170,8 +170,8 @@ export const usePartnerCatalog = () => {
         }));
     };
 
-    const parsePrice = (key: string, priceRupees: string) => {
-        const normalizedPrice = priceRupees.trim();
+    const parsePrice = (key: string, priceCedis: string) => {
+        const normalizedPrice = priceCedis.trim();
         const isValidPrice = /^\d+(\.\d{1,2})?$/.test(normalizedPrice);
         const price = Number(normalizedPrice);
         if (!isValidPrice || !Number.isFinite(price) || price > 1_000_000) {
@@ -241,7 +241,7 @@ export const usePartnerCatalog = () => {
             return;
         }
 
-        const price = parsePrice(key, draft.priceRupees);
+        const price = parsePrice(key, draft.priceCedis);
         if (price === null) return;
 
         setSavingKey(key);
@@ -271,7 +271,7 @@ export const usePartnerCatalog = () => {
             setInvalidFields((current) => ({ ...current, [key]: 'name' }));
             return;
         }
-        const price = parsePrice(key, draft.priceRupees);
+        const price = parsePrice(key, draft.priceCedis);
         if (price === null) return;
 
         setSavingKey(key);

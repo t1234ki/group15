@@ -1,5 +1,6 @@
 import { PriceUnit } from '../models/catalogModels';
 import { Money, addMoney, multiplyMoney, cedis } from '../models/moneyModels';
+import type { PaymentMethod } from '../models/paymentModels';
 import { TAX_RATE } from '../config/cartConfig';
 
 /** Lowercase slugs, not display strings; labels live in ordersConfig. */
@@ -53,6 +54,7 @@ export interface Order {
     /** Human-friendly, display only. Never looked up by. */
     reference: string;
     status: OrderStatus;
+    paymentMethod?: PaymentMethod;
     /** Server-evaluated cancellation policy; never inferred from display state. */
     canCancel: boolean;
     /** Server-evaluated schedule-change policy; never inferred from display state. */
@@ -105,6 +107,7 @@ export const ORDERS: Order[] = [
         id: 'ord_01J8XR3K2WQ4',
         reference: 'LL-2026-001',
         status: 'processing',
+        paymentMethod: 'cash_on_pickup',
         canCancel: false,
         canReschedule: false,
         placedAt: '2026-08-20T05:00:00Z',
@@ -148,6 +151,7 @@ export const ORDERS: Order[] = [
         id: 'ord_01J8XR7M5BD9',
         reference: 'LL-2026-002',
         status: 'out_for_delivery',
+        paymentMethod: 'cash_on_pickup',
         canCancel: false,
         canReschedule: false,
         placedAt: '2026-08-19T06:20:00Z',
@@ -193,6 +197,7 @@ export const ORDERS: Order[] = [
         id: 'ord_01J8XRB1N4TC',
         reference: 'LL-2026-003',
         status: 'delivered',
+        paymentMethod: 'cash_on_pickup',
         canCancel: false,
         canReschedule: false,
         placedAt: '2026-08-15T05:30:00Z',

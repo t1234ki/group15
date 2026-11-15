@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AsyncBoundary from '../../common-ui/async-boundary/AsyncBoundary';
 import { ROUTES } from '../../config/navigationConfig';
@@ -11,6 +11,11 @@ import styles from './partnerPortal.module.scss';
 const PartnerSettingsPage: React.FC = () => {
     const settings = usePartnerSettings();
     const minimumOperatingDate = todayInPartnerTimezone();
+    const [imageFile, setImageFile] = useState<File | null>(null);
+
+    useEffect(() => {
+        setImageFile(null);
+    }, [settings.selectedId]);
 
     return (
         <div className={styles.portalPage}>
@@ -64,7 +69,7 @@ const PartnerSettingsPage: React.FC = () => {
                                                 onChange={(event) =>
                                                     settings.selectLaundry(event.target.value)
                                                 }
-                                                disabled={settings.isSaving}
+                                                disabled={settings.isSaving || settings.imageSaving}
                                             >
                                                 {settings.configurations.map((configuration) => (
                                                     <option
@@ -120,6 +125,79 @@ const PartnerSettingsPage: React.FC = () => {
                                                     }
                                                 />
                                             </p>
+                                            <div
+                                                className={`${styles.storeImage} ${styles.fullField}`}
+                                            >
+                                                <div>
+                                                    <h3>{PARTNER_SETTINGS_COPY.imageTitle}</h3>
+                                                    <p>{PARTNER_SETTINGS_COPY.imageIntro}</p>
+                                                </div>
+                                                {settings.selected.imageUrl ? (
+                                                    <img
+                                                        className={styles.storeImagePreview}
+                                                        src={settings.selected.imageUrl}
+                                                        alt={`Preview of ${draft.name}`}
+                                                    />
+                                                ) : (
+                                                    <p className={styles.storeImageEmpty}>
+                                                        {PARTNER_SETTINGS_COPY.noImage}
+                                                    </p>
+                                                )}
+                                                <label
+                                                    className={styles.formField}
+                                                    htmlFor="partner-store-image"
+                                                >
+                                                    {PARTNER_SETTINGS_COPY.imageLabel}
+                                                </label>
+                                                <input
+                                                    id="partner-store-image"
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/webp"
+                                                    disabled={settings.imageSaving}
+                                                    onChange={(event) =>
+                                                        setImageFile(
+                                                            event.target.files?.[0] ?? null
+                                                        )
+                                                    }
+                                                />
+                                                {imageFile && <p>{imageFile.name}</p>}
+                                                <button
+                                                    className={`button ${styles.secondaryAction}`}
+                                                    type="button"
+                                                    disabled={!imageFile || settings.imageSaving}
+                                                    onClick={() => {
+                                                        if (!imageFile) return;
+                                                        void settings
+                                                            .saveListingImage(imageFile)
+                                                            .then((saved) => {
+                                                                if (saved) setImageFile(null);
+                                                            });
+                                                    }}
+                                                >
+                                                    {settings.imageSaving
+                                                        ? PARTNER_SETTINGS_COPY.imageUploading
+                                                        : PARTNER_SETTINGS_COPY.imageUpload}
+                                                </button>
+                                                <div
+                                                    className={styles.saveMessage}
+                                                    aria-live="polite"
+                                                >
+                                                    {settings.imageError && (
+                                                        <p
+                                                            data-error="true"
+                                                            role="alert"
+                                                        >
+                                                            {settings.imageError}
+                                                        </p>
+                                                    )}
+                                                    {settings.imageSucceeded && (
+                                                        <p>{PARTNER_SETTINGS_COPY.imageSaved}</p>
+                                                    )}
+                                                    {settings.imageWarning && (
+                                                        <p role="status">{settings.imageWarning}</p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </section>
 
@@ -131,16 +209,21 @@ const PartnerSettingsPage: React.FC = () => {
                                             </div>
                                         </header>
                                         <div className={styles.settingsFields}>
-                                            <p className={`${styles.formField} ${styles.fullField}`}>
+                                            <p
+                                                className={`${styles.formField} ${styles.fullField}`}
+                                            >
                                                 <span>
-                                                    {draft.latitude === null || draft.longitude === null
+                                                    {draft.latitude === null ||
+                                                    draft.longitude === null
                                                         ? PARTNER_SETTINGS_COPY.locationMissing
                                                         : `${PARTNER_SETTINGS_COPY.latitude}: ${draft.latitude.toFixed(5)}, ${PARTNER_SETTINGS_COPY.longitude}: ${draft.longitude.toFixed(5)}`}
                                                 </span>
                                                 <button
                                                     className="button"
                                                     type="button"
-                                                    disabled={settings.isLocating || settings.isSaving}
+                                                    disabled={
+                                                        settings.isLocating || settings.isSaving
+                                                    }
                                                     onClick={() => void settings.locate()}
                                                 >
                                                     {settings.isLocating
@@ -148,7 +231,9 @@ const PartnerSettingsPage: React.FC = () => {
                                                         : PARTNER_SETTINGS_COPY.useCurrentLocation}
                                                 </button>
                                                 {settings.locationError && (
-                                                    <span role="alert">{settings.locationError}</span>
+                                                    <span role="alert">
+                                                        {settings.locationError}
+                                                    </span>
                                                 )}
                                             </p>
                                             <p className={styles.formField}>
