@@ -36,11 +36,16 @@ const PartnerPage: React.FC = () => {
     const cartButton = useRef<HTMLButtonElement | null>(null);
     const replaceCartDialog = useRef<HTMLElement | null>(null);
     const focusAfterPartnerSwitch = useRef<'trigger' | 'cart' | null>(null);
-    const visibleCategories = categories.filter(({ id }) => selectedCategoryIds.includes(id));
+    const availableCategories = categories.filter(({ items }) => items.length > 0);
+    const visibleCategories = availableCategories.filter(({ id }) =>
+        selectedCategoryIds.includes(id)
+    );
 
     useEffect(() => {
         if (state.data) {
-            setSelectedCategoryIds(state.data.categories.map(({ id }) => id));
+            setSelectedCategoryIds(
+                state.data.categories.filter(({ items }) => items.length > 0).map(({ id }) => id)
+            );
         }
     }, [state.data]);
 
@@ -159,39 +164,64 @@ const PartnerPage: React.FC = () => {
                             </section>
                         )}
 
-                        {loaded.isOpen && categories.length === 0 && (
-                            <p className={styles.partnerPageEmpty}>{PARTNER_COPY.emptyCatalogue}</p>
+                        {loaded.isOpen && availableCategories.length === 0 && (
+                            <section className={`card ${styles.partnerPageClosed}`}>
+                                <h2>{PARTNER_COPY.emptyCatalogueTitle}</h2>
+                                <p>{PARTNER_COPY.emptyCatalogue}</p>
+                                <Link
+                                    className="button button--primary"
+                                    to={ROUTES.laundries}
+                                >
+                                    {PARTNER_COPY.emptyCatalogueAction}
+                                </Link>
+                            </section>
                         )}
 
-                        {loaded.isOpen && categories.length > 0 && (
+                        {loaded.isOpen && availableCategories.length > 0 && (
                             <fieldset className={`card ${styles.serviceChoices}`}>
                                 <legend>{PARTNER_COPY.chooseServices}</legend>
                                 <p>{PARTNER_COPY.chooseServicesHint}</p>
                                 <div className={styles.serviceChoicesList}>
-                                    {categories.map((category) => (
-                                        <label key={category.id}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedCategoryIds.includes(category.id)}
-                                                onChange={(event) =>
-                                                    setSelectedCategoryIds((current) =>
-                                                        event.target.checked
-                                                            ? [...current, category.id]
-                                                            : current.filter(
-                                                                  (id) => id !== category.id
-                                                              )
-                                                    )
-                                                }
-                                            />
-                                            <span>{category.name}</span>
-                                        </label>
-                                    ))}
+                                    {availableCategories.map((category) => {
+                                        const isSelected = selectedCategoryIds.includes(
+                                            category.id
+                                        );
+                                        return (
+                                            <label
+                                                className={`card ${styles.serviceChoice}`}
+                                                data-selected={isSelected}
+                                                key={category.id}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={(event) =>
+                                                        setSelectedCategoryIds((current) =>
+                                                            event.target.checked
+                                                                ? [...current, category.id]
+                                                                : current.filter(
+                                                                      (id) => id !== category.id
+                                                                  )
+                                                        )
+                                                    }
+                                                />
+                                                <span className={styles.serviceChoiceName}>
+                                                    {category.name}
+                                                </span>
+                                                <span className={styles.serviceChoiceStatus}>
+                                                    {isSelected
+                                                        ? PARTNER_COPY.serviceSelected
+                                                        : PARTNER_COPY.serviceNotSelected}
+                                                </span>
+                                            </label>
+                                        );
+                                    })}
                                 </div>
                             </fieldset>
                         )}
 
                         {loaded.isOpen &&
-                            categories.length > 0 &&
+                            availableCategories.length > 0 &&
                             visibleCategories.length === 0 && (
                                 <p className={styles.partnerPageEmpty}>
                                     {PARTNER_COPY.chooseServicePrompt}

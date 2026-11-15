@@ -62,7 +62,7 @@ describe('the document title', () => {
         renderApp();
         expect(document.title).toBe(documentTitleFor('/'));
 
-        await user.click((await screen.findAllByRole('link', { name: /book now/i }))[0]!);
+        await user.click((await screen.findAllByRole('link', { name: /choose services/i }))[0]!);
 
         await screen.findByRole('heading', { name: /laundry services/i });
         expect(document.title).toBe(documentTitleFor('/laundries'));

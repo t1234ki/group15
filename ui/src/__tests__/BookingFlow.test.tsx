@@ -95,12 +95,16 @@ describe('order flow', () => {
         ).toBeInTheDocument();
         restoreLocation();
 
-        // Book Now opens the partner menu - there is no separate wizard any more.
-        // The listing is a request now, so the card arrives rather than being there.
+        // The listing action opens service and item selection; an item must be
+        // chosen before the cart can contain anything.
         const card = (await screen.findByText('SparkleWash Express')).closest('article')!;
-        await user.click(within(card).getByRole('link', { name: /book now/i }));
+        await user.click(within(card).getByRole('link', { name: /choose services/i }));
         expect(await screen.findByRole('heading', { name: 'Wash & Fold' })).toBeInTheDocument();
         expect(screen.getByRole('checkbox', { name: 'Wash & Fold' })).toBeChecked();
+        expect(screen.getByText('Included in your order').closest('label')).toHaveAttribute(
+            'data-selected',
+            'true'
+        );
         await user.click(screen.getByRole('checkbox', { name: 'Wash & Iron' }));
         expect(screen.queryByRole('heading', { name: 'Wash & Iron' })).toBeNull();
 
@@ -303,6 +307,6 @@ describe('order flow', () => {
 
         const closedCard = (await screen.findByText('FreshPress Studio')).closest('article')!;
         expect(within(closedCard).getByText('Currently Closed')).toBeInTheDocument();
-        expect(within(closedCard).getByRole('button', { name: /book now/i })).toBeDisabled();
+        expect(within(closedCard).getByRole('button', { name: /choose services/i })).toBeDisabled();
     });
 });

@@ -59,7 +59,7 @@ export const LISTING_COPY = {
     startingFrom: 'Starting from',
     priceUnknown: 'Price on request',
     closed: 'Currently Closed',
-    book: 'Book Now',
+    book: 'Choose services',
     mapTitle: 'Map View',
     mapSubtitle: 'Laundry business locations',
     freeDelivery: 'Scheduled pickup',
